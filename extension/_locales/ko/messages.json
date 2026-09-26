@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Local AI Live Translate"
+  },
+  "extDescription": {
+    "message": "동영상 음성 실시간 이중 언어 자막 (100% 로컬 및 개인 정보 보호)"
+  },
+  "cmdToggle": {
+    "message": "현재 탭에서 실시간 번역 시작/중지"
+  }
+}

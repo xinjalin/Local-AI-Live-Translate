@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Local AI Live Translate"
+  },
+  "extDescription": {
+    "message": "即時影片語音翻譯雙語字幕外掛 (100% 本機與隱私)"
+  },
+  "cmdToggle": {
+    "message": "在目前分頁啟動或停止即時翻譯"
+  }
+}

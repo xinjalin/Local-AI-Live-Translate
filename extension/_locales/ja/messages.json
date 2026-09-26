@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Local AI Live Translate"
+  },
+  "extDescription": {
+    "message": "動画音声のリアルタイム二言語字幕 (100% ローカル・プライバシー保護)"
+  },
+  "cmdToggle": {
+    "message": "現在のタブでライブ翻訳を開始/停止"
+  }
+}

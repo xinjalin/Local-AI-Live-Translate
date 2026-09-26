@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="topbar">
+      <div class="brand">
+        <!-- Same artwork as logo.svg, coloured by the theme tokens (--logo-*) -->
+        <svg class="brand-mark" viewBox="4 16 120 96" width="44" height="35" aria-hidden="true">
+          <defs>
+            <linearGradient id="logo-left" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" style="stop-color: var(--logo-left-a)"/>
+              <stop offset="1" style="stop-color: var(--logo-left-b)"/>
+            </linearGradient>
+            <clipPath id="logo-card">
+              <rect x="4" y="16" width="120" height="96" rx="20"/>
+            </clipPath>
+          </defs>
+          <g clip-path="url(#logo-card)">
+            <rect x="4" y="16" width="120" height="96" style="fill: var(--logo-right)"/>
+            <polygon points="0,16 51,16 74,112 0,112" fill="url(#logo-left)"/>
+          </g>
+          <rect x="5" y="17" width="118" height="94" rx="19" fill="none" style="stroke: var(--logo-edge)" stroke-width="2"/>
+          <path style="fill: var(--logo-a)" fill-rule="evenodd"
+                d="M18.5 88 L28.8 40 L39.2 40 L49.5 88 L41.3 88 L39 77 L29 77 L26.7 88 Z M30.6 69.5 L37.4 69.5 L34 52 Z"/>
+          <g fill="none" style="stroke: var(--logo-wen)" stroke-width="8">
+            <path d="M94 36v12"/>
+            <path d="M77 50h34"/>
+            <path d="M104 54 C 99 68 91 78 79 87"/>
+            <path d="M85 63 C 92 73 100 80 110 87"/>
+          </g>
+        </svg>
+        <div>
+          <h1>Local AI Live Translate</h1>
+          <p class="tagline" data-i18n="subtitleDesc">Real-time AI video translation</p>
+        </div>
+      </div>
+      <span id="capture-status" class="chip">Inactive</span>
+    </header>
+
+    <!-- Status card -->
+    <section class="hero" aria-live="polite">
+      <div class="hero-top">
+        <span class="hero-label" id="hero-label">LIVE TRANSLATE</span>
+        <svg class="hero-icon" viewBox="0 0 32 24" width="30" height="22" aria-hidden="true">
+          <rect x="1" y="1" width="30" height="22" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M7 15h7M17 15h8M7 10h11M21 10h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="hero-langs">
+        <span id="hero-source">Auto Detect</span>
+        <svg class="hero-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6"/>
+        </svg>
+        <span id="hero-target">English</span>
+      </div>
+      <div class="hero-meta">
+        <div>
+          <span class="meta-label" data-i18n="heroModel">Model</span>
+          <span class="meta-line">
+            <span id="hero-model" class="meta-value">&mdash;</span>
+            <!-- While captions run: the local model's speed on the last translated line -->
+            <span id="hero-tps" class="meta-stat" data-i18n-title="titleTps" title="Translation speed of the local model (last line)" hidden></span>
+          </span>
+        </div>
+        <div>
+          <span class="meta-label" data-i18n="heroServer">Server</span>
+          <span class="meta-line">
+            <span id="connection-status" class="meta-value offline">Disconnected</span>
+            <!-- While captions run: speech end -> subtitle on screen; hover for the breakdown -->
+            <button type="button" id="hero-latency" class="meta-stat latency" aria-describedby="latency-tip" hidden></button>
+          </span>
+        </div>
+      </div>
+    </section>
+    <div class="latency-tip" id="latency-tip" role="tooltip" hidden></div>
+
+    <button id="toggle-btn" class="btn btn-start">&hellip;</button>
+
+    <!-- Settings search: suggestions come from the settings on the page (popup.js) -->
+    <div class="search">
+      <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
+      </svg>
+      <input type="search" id="settings-search" role="combobox" autocomplete="off" spellcheck="false"
+             aria-autocomplete="list" aria-expanded="false" aria-controls="search-results"
+             data-i18n-placeholder="searchPlaceholder" placeholder="Search settings">
+      <kbd class="search-key" aria-hidden="true">/</kbd>
+      <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+    </div>
+
+    <!-- Sections -->
+    <nav class="segmented" role="tablist">
+      <button type="button" role="tab" data-tab="live" data-i18n="tabLive">Live</button>
+      <button type="button" role="tab" data-tab="model" data-i18n="tabModel">Model</button>
+      <button type="button" role="tab" data-tab="display" data-i18n="tabDisplay">Display</button>
+      <button type="button" role="tab" data-tab="tuning" data-i18n="tabTuning">Tuning</button>
+    </nav>
+
+    <!-- Live -->
+    <div class="tab-panel" data-panel="live" role="tabpanel">
+      <!-- Saved profile configs (popup.js: ConfigManager) -->
+      <div class="panel config-panel" id="profile-config">
+        <div class="panel-title" data-i18n="titleProfile" data-search="profile preset save load snapshot config setup">Profile</div>
+        <div class="config-row">
+          <select id="profile-config-select" aria-labelledby="profile-config"></select>
+          <button type="button" class="icon-btn" id="profile-config-new" data-i18n-title="btnSaveNew" title="Save as new"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" class="icon-btn" id="profile-config-update" data-i18n-title="btnUpdateConfig" title="Update with current settings" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+          <button type="button" class="icon-btn danger" id="profile-config-delete" data-i18n-title="btnDeleteConfig" title="Delete" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+        </div>
+        <div class="config-name-row" id="profile-config-name-row" hidden>
+          <input type="text" id="profile-config-name" maxlength="40" data-i18n-placeholder="placeholderConfigName" placeholder="Name">
+          <button type="button" class="small-btn primary" id="profile-config-name-save" data-i18n="btnSave">Save</button>
+          <button type="button" class="small-btn" id="profile-config-name-cancel" data-i18n="btnCancel">Cancel</button>
+        </div>
+        <div class="config-footer">
+          <span class="hint" data-i18n="hintProfile">Saves the LLM server, model, context size, languages, speech engine, speaker labels and speech detection tuning.</span>
+          <span class="config-io">
+            <button type="button" class="link-btn" id="profile-config-export" data-i18n="btnExport">Export</button>
+            <span aria-hidden="true">&middot;</span>
+            <button type="button" class="link-btn" id="profile-config-import" data-i18n="btnImport">Import</button>
+          </span>
+        </div>
+        <div class="hint config-status" id="profile-config-status" aria-live="polite" hidden></div>
+      </div>
+
+      <div class="panel">
+        <div class="field" data-search="input from video language spoken">
+          <label for="source-lang" data-i18n="labelSourceLang">Video Source Language</label>
+          <select id="source-lang" class="lang-select" data-first-value="auto" data-first-i18n="optSourceAuto"></select>
+        </div>
+        <div class="field" data-search="output translate to language">
+          <label for="target-lang" data-i18n="labelTargetLang">Subtitle Translation Language</label>
+          <select id="target-lang" class="lang-select" data-first-value="none" data-first-i18n="optTargetNone"></select>
+        </div>
+        <div class="field" data-search="speech recognition sensevoice whisper dolphin asr">
+          <label for="asr-engine" data-i18n="labelAsrEngine">Speech Recognition Engine</label>
+          <select id="asr-engine">
+            <option value="sensevoice" data-i18n="optAsrSensevoice">SenseVoice (Fast Mode)</option>
+            <option value="whisper" data-i18n="optAsrWhisper">Whisper-Small (accurate, 99 languages)</option>
+            <option value="dolphin" data-i18n="optAsrDolphin">Dolphin (fast, Asian languages)</option>
+          </select>
+          <!-- Which engine really runs for the chosen video language (see ASR_ENGINES) -->
+          <div class="hint" id="asr-note" hidden></div>
+        </div>
+        <label class="switch-row" for="show-bilingual" data-search="dual both languages original two">
+          <span data-i18n="labelShowBilingual">Bilingual Mode</span>
+          <input type="checkbox" id="show-bilingual" class="switch" checked>
+        </label>
+        <label class="switch-row" for="detect-speakers" data-search="speaker diarization who talking person people voices group label">
+          <span class="switch-text">
+            <span data-i18n="labelDetectSpeakers">Label speakers</span>
+            <span class="switch-hint" data-i18n="hintDetectSpeakers">Shows who is talking: Person 1, Person 2…</span>
+          </span>
+          <input type="checkbox" id="detect-speakers" class="switch">
+        </label>
+        <div class="hint error" id="speakers-unavailable" data-i18n="speakersUnavailable" hidden>The server has no speaker model: put it in models/speaker (see README).</div>
+        <label class="switch-row" for="save-transcripts" data-search="log record history file markdown save">
+          <span class="switch-text">
+            <span data-i18n="labelSaveTranscripts">Save transcripts</span>
+            <span class="switch-hint" data-i18n="hintSaveTranscripts">Markdown files in the app's transcripts folder</span>
+          </span>
+          <input type="checkbox" id="save-transcripts" class="switch">
+        </label>
+      </div>
+
+      <div class="panel">
+        <div class="shortcut-row" data-search="hotkey keyboard key shortcut">
+          <span class="switch-text">
+            <span data-i18n="labelShortcut">Keyboard shortcut</span>
+            <span class="switch-hint" data-i18n="hintShortcut">Start or stop captions on the current tab</span>
+          </span>
+          <kbd id="shortcut-key">Alt+Shift+L</kbd>
+          <button type="button" class="link-btn" id="change-shortcut" data-i18n="btnChangeShortcut">Change</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model -->
+    <div class="tab-panel" data-panel="model" role="tabpanel" hidden>
+      <div class="panel">
+        <div class="panel-title" data-i18n="titleTranslation">Translation Engine</div>
+        <div class="field" data-search="ollama lm studio server llm backend">
+          <label for="llm-provider" data-i18n="labelProvider">LLM Server</label>
+          <select id="llm-provider">
+            <option value="lmstudio" data-i18n="optProviderLmstudio">LM Studio (OpenAI-compatible)</option>
+            <option value="ollama" data-i18n="optProviderOllama">Ollama</option>
+            <option value="qwencloud" data-i18n="optProviderQwen">Qwen Cloud (online, API key)</option>
+          </select>
+        </div>
+        <div id="group-lmstudio">
+          <div class="field" data-search="address host port server url">
+            <label for="lmstudio-url" data-i18n="labelLmstudioUrl">LM Studio Server URL</label>
+            <input type="text" id="lmstudio-url" value="http://127.0.0.1:1234" placeholder="http://127.0.0.1:1234">
+          </div>
+        </div>
+        <div id="group-ollama" hidden>
+          <div class="field" data-search="address host port server url">
+            <label for="ollama-url" data-i18n="labelOllamaUrl">Ollama Server URL</label>
+            <input type="text" id="ollama-url" value="http://127.0.0.1:11434" placeholder="http://127.0.0.1:11434">
+          </div>
+        </div>
+        <!-- Qwen Cloud: any model on the account; a LiveTranslate model also does the listening -->
+        <div id="group-qwencloud" hidden>
+          <div class="field" data-search="qwen cloud alibaba dashscope api url endpoint online">
+            <label for="qwencloud-url" data-i18n="labelQwenUrl">Qwen Cloud API URL</label>
+            <input type="text" id="qwencloud-url" value="https://maas.qwencloudapi.com" placeholder="https://maas.qwencloudapi.com" spellcheck="false">
+          </div>
+          <div class="field" data-search="qwen cloud api key token online">
+            <label for="qwencloud-key" data-i18n="labelQwenKey">Qwen Cloud API Key</label>
+            <input type="password" id="qwencloud-key" placeholder="sk-..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field" data-search="qwen model livetranslate realtime interpretation mt online">
+            <label for="qwencloud-model" data-i18n="labelQwenModel">Qwen Cloud Model</label>
+            <div class="model-row">
+              <input type="text" id="qwencloud-model" list="qwencloud-models" placeholder="qwen3.8-livetranslate-flash-realtime" spellcheck="false" autocomplete="off">
+              <button id="refresh-qwen" class="icon-btn" type="button" data-i18n-title="btnRefreshTitle" title="Refresh model list">&#x21bb;</button>
+            </div>
+            <datalist id="qwencloud-models"></datalist>
+            <div class="hint" id="qwen-mode"></div>
+            <div class="hint" id="qwen-status"></div>
+          </div>
+          <div class="hint" data-i18n="hintQwenCloud">Online: speech text, or with a LiveTranslate model the tab's audio, is sent to Qwen Cloud and billed to your key.</div>
+        </div>
+        <div class="field" id="group-model" data-search="llm model load eject translation">
+          <label for="model-name" data-i18n="labelModelName">Translation Model</label>
+          <div class="model-row">
+            <select id="model-name"></select>
+            <button id="load-model" class="icon-btn" type="button" hidden title="Load model">&#x25b6;</button>
+            <button id="refresh-models" class="icon-btn" type="button" data-i18n-title="btnRefreshTitle" title="Refresh model list">&#x21bb;</button>
+          </div>
+          <div id="model-load-state" class="hint" hidden></div>
+          <div id="model-status" class="hint"></div>
+          <!-- A profile's model that isn't installed: keep translating with the current one and offer
+               to download it (popup.js: renderMissingModel) -->
+          <div class="model-missing" id="model-missing" hidden>
+            <div class="hint error" id="model-missing-text"></div>
+            <div class="download-row">
+              <button type="button" class="small-btn primary" id="download-model">Download</button>
+              <span class="hint" id="download-status"></span>
+            </div>
+            <div class="progress" id="download-progress" hidden><div class="progress-bar" id="download-bar"></div></div>
+          </div>
+        </div>
+        <div class="field" id="group-context" hidden data-search="context window tokens memory vram">
+          <label for="context-size" data-i18n="labelContextSize">Context Size</label>
+          <select id="context-size">
+            <option value="4096" selected>4K (4,096)</option>
+            <option value="8192">8K (8,192)</option>
+            <option value="16384">16K (16,384)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title" data-i18n="titleDeepseek">Cloud Translation Backup (Optional)</div>
+        <div class="field" data-search="cloud api key backup online">
+          <label for="deepseek-key" data-i18n="labelDeepseekKey">DeepSeek API Key</label>
+          <input type="password" id="deepseek-key" placeholder="sk-...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="tab-panel" data-panel="display" role="tabpanel" hidden>
+      <div class="panel">
+        <div class="field-row">
+          <div class="field" data-search="interface language display">
+            <label for="ui-lang" data-i18n="labelUiLang">UI Language</label>
+            <!-- Language options are generated by popup.js -->
+            <select id="ui-lang" class="lang-select"></select>
+          </div>
+          <div class="field" data-search="dark light hybrid appearance mode colours colors">
+            <label for="theme" data-i18n="labelTheme">Theme</label>
+            <select id="theme">
+              <option value="dark" data-i18n="optThemeDark">Dark</option>
+              <option value="light" data-i18n="optThemeLight">Light</option>
+              <option value="hybrid" data-i18n="optThemeHybrid">Hybrid</option>
+              <option value="system" data-i18n="optThemeSystem">System</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saved display configs (popup.js: ConfigManager) -->
+      <div class="panel config-panel" id="display-config">
+        <div class="panel-title" data-i18n="titleDisplayConfig" data-search="display preset save load snapshot config style look">Display Config</div>
+        <div class="config-row">
+          <select id="display-config-select" aria-labelledby="display-config"></select>
+          <button type="button" class="icon-btn" id="display-config-new" data-i18n-title="btnSaveNew" title="Save as new"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" class="icon-btn" id="display-config-update" data-i18n-title="btnUpdateConfig" title="Update with current settings" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+          <button type="button" class="icon-btn danger" id="display-config-delete" data-i18n-title="btnDeleteConfig" title="Delete" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+        </div>
+        <div class="config-name-row" id="display-config-name-row" hidden>
+          <input type="text" id="display-config-name" maxlength="40" data-i18n-placeholder="placeholderConfigName" placeholder="Name">
+          <button type="button" class="small-btn primary" id="display-config-name-save" data-i18n="btnSave">Save</button>
+          <button type="button" class="small-btn" id="display-config-name-cancel" data-i18n="btnCancel">Cancel</button>
+        </div>
+        <div class="config-footer">
+          <span class="hint" data-i18n="hintDisplayConfig">Saves the subtitle look, layout and timing.</span>
+          <span class="config-io">
+            <button type="button" class="link-btn" id="display-config-export" data-i18n="btnExport">Export</button>
+            <span aria-hidden="true">&middot;</span>
+            <button type="button" class="link-btn" id="display-config-import" data-i18n="btnImport">Import</button>
+          </span>
+        </div>
+        <div class="hint config-status" id="display-config-status" aria-live="polite" hidden></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title" data-i18n="titleAppearance">Subtitle Appearance</div>
+        <div class="swatch-list">
+          <label class="swatch-field" for="bg-color" data-search="colour color background box">
+            <span data-i18n="labelBgColor">Background Color</span>
+            <input type="color" id="bg-color" value="#0a0f19">
+          </label>
+          <label class="swatch-field" for="text-color" data-search="colour color font text">
+            <span data-i18n="labelTextColor">Text Color</span>
+            <input type="color" id="text-color" value="#ffffff">
+          </label>
+          <!-- Only shown for the Soft / Medium / Strong shadow styles -->
+          <label class="swatch-field" for="shadow-color" id="shadow-color-row" hidden data-search="colour color shadow glow">
+            <span data-i18n="labelShadowColor">Shadow Color</span>
+            <input type="color" id="shadow-color" value="#000000">
+          </label>
+          <!-- Only shown when Text Shadow is "Outline" -->
+          <label class="swatch-field" for="outline-color" id="outline-color-row" hidden data-search="colour color outline stroke border shadow">
+            <span data-i18n="labelOutlineColor">Outline Color</span>
+            <input type="color" id="outline-color" value="#000000">
+          </label>
+        </div>
+        <div class="field" data-search="transparency transparent see-through alpha background">
+          <label for="bg-opacity" class="range-label">
+            <span data-i18n="labelBgOpacity">Background Opacity:</span>
+            <span class="range-value"><span id="bg-opacity-val">82</span>%</span>
+          </label>
+          <input type="range" id="bg-opacity" min="0" max="100" step="5" value="82">
+        </div>
+        <div class="field" data-search="text size bigger smaller large">
+          <label for="font-size" data-i18n="labelFontSize">Subtitle Font Size</label>
+          <select id="font-size">
+            <option value="xsmall" data-i18n="optSizeXsmall">Extra Small</option>
+            <option value="small" data-i18n="optSizeSmall">Small</option>
+            <option value="medium" data-i18n="optSizeMedium" selected>Medium</option>
+            <option value="large" data-i18n="optSizeLarge">Large</option>
+            <option value="xlarge" data-i18n="optSizeXlarge">X-Large</option>
+            <option value="xxlarge" data-i18n="optSizeXxlarge">XX-Large</option>
+            <option value="huge" data-i18n="optSizeHuge">Huge</option>
+          </select>
+        </div>
+        <div class="field" data-search="typeface font style arial verdana georgia">
+          <label for="font-family" data-i18n="labelFontFamily">Subtitle Font</label>
+          <!-- Options are generated from LC_FONTS in subtitle-styles.js -->
+          <select id="font-family"></select>
+        </div>
+        <div class="field-row">
+          <div class="field" data-search="bold thickness heavy">
+            <label for="font-weight" data-i18n="labelFontWeight">Text Weight</label>
+            <select id="font-weight">
+              <option value="bold" data-i18n="optWeightBold" selected>Bold</option>
+              <option value="semibold" data-i18n="optWeightSemibold">Semi-bold</option>
+              <option value="normal" data-i18n="optWeightNormal">Normal</option>
+            </select>
+          </div>
+          <div class="field" data-search="outline stroke contrast shadow">
+            <label for="text-shadow" data-i18n="labelTextShadow">Text Shadow</label>
+            <select id="text-shadow">
+              <option value="off" data-i18n="optShadowOff">Off</option>
+              <option value="soft" data-i18n="optShadowSoft">Soft</option>
+              <option value="medium" data-i18n="optShadowMedium" selected>Medium</option>
+              <option value="strong" data-i18n="optShadowStrong">Strong</option>
+              <option value="outline" data-i18n="optShadowOutline">Outline</option>
+            </select>
+          </div>
+        </div>
+        <!-- Only shown when Text Shadow is "Outline" -->
+        <div class="field" id="group-outline-width" hidden data-search="outline stroke thickness border width size">
+          <label for="outline-width" class="range-label">
+            <span data-i18n="labelOutlineWidth">Outline Width:</span>
+            <span class="range-value"><span id="outline-width-val">1.5</span> px</span>
+          </label>
+          <input type="range" id="outline-width" min="0.5" max="5" step="0.5" value="1.5">
+        </div>
+        <!-- Live preview: a miniature video frame with the subtitle box drawn at its real size and
+             the whole frame scaled down, so the preview never changes size (see popup.css). -->
+        <div class="subtitle-preview" aria-hidden="true">
+          <div class="preview-canvas">
+            <div class="preview-box" id="subtitle-preview">
+              <div class="preview-raw">待って、これ見て！</div>
+              <div class="preview-main"><span class="preview-speaker" hidden></span>Wait, look at this!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title" data-i18n="titleLayout">Subtitle Layout</div>
+        <div class="field" data-search="move drag location place top bottom">
+          <label for="subtitle-position" data-i18n="labelPosition">Position</label>
+          <select id="subtitle-position">
+            <option value="bottom" data-i18n="optPosBottom" selected>Bottom</option>
+            <option value="top" data-i18n="optPosTop">Top</option>
+            <option value="custom" data-i18n="optPosCustom">Where I last dragged it</option>
+          </select>
+          <div class="hint" data-i18n="hintPosition">Drag the subtitles to move them; double-click to reset.</div>
+        </div>
+        <!-- The two original-text options are only shown when the original line is displayed
+             (Bilingual Mode on, with a translation language) -->
+        <div class="field" id="group-original-placement" data-search="source order above below">
+          <label for="original-placement" data-i18n="labelOriginalPlacement">Original Text</label>
+          <select id="original-placement">
+            <option value="above" data-i18n="optOriginalAbove" selected>Above the translation</option>
+            <option value="below" data-i18n="optOriginalBelow">Below the translation</option>
+          </select>
+        </div>
+        <div class="field" id="group-original-scale" data-search="source smaller size">
+          <label for="original-scale" class="range-label">
+            <span data-i18n="labelOriginalScale">Original Text Size:</span>
+            <span class="range-value"><span id="original-scale-val">70</span>%</span>
+          </label>
+          <input type="range" id="original-scale" min="50" max="100" step="5" value="70">
+        </div>
+        <div class="field" data-search="previous lines history">
+          <label for="history-lines" data-i18n="labelHistoryLines">Subtitle History Lines</label>
+          <select id="history-lines">
+            <option value="0" data-i18n="optHistory0" selected>Show latest only (0 history lines)</option>
+            <option value="1" data-i18n="optHistory1">Show latest + 1 line (1 history line)</option>
+            <option value="2" data-i18n="optHistory2">Show latest + 2 lines (2 history lines)</option>
+          </select>
+        </div>
+        <label class="switch-row" for="pin-subtitles" data-search="always visible pin sticky keep">
+          <span data-i18n="labelPinSubtitles">Keep subtitle box on screen</span>
+          <input type="checkbox" id="pin-subtitles" class="switch">
+        </label>
+      </div>
+    </div>
+
+    <!-- Tuning -->
+    <div class="tab-panel" data-panel="tuning" role="tabpanel" hidden>
+      <div class="panel">
+        <div class="panel-title" data-i18n="titleVad">Advanced Speech Segmentation (VAD)</div>
+        <div class="field" data-search="sensitivity noise music voice detection vad">
+          <label for="vad-threshold" class="range-label">
+            <span data-i18n="labelVadThreshold">Speech Detection Threshold:</span>
+            <span class="range-value" id="vad-threshold-val">0.40</span>
+          </label>
+          <input type="range" id="vad-threshold" min="0.2" max="0.8" step="0.05" value="0.4">
+          <div class="hint" data-i18n="hintVadThreshold">Lower picks up quiet voices; higher ignores music and background noise.</div>
+        </div>
+        <div class="field" data-search="pause silence delay latency speed">
+          <label for="min-silence" class="range-label">
+            <span data-i18n="labelMinSilence">Silence Threshold:</span>
+            <span class="range-value"><span id="min-silence-val">0.5</span> <span data-i18n="second">s</span></span>
+          </label>
+          <input type="range" id="min-silence" min="0.2" max="1.2" step="0.1" value="0.5">
+        </div>
+        <div class="field" data-search="split length long sentence segment">
+          <label for="max-speech" class="range-label">
+            <span data-i18n="labelMaxSpeech">Max Speech Duration:</span>
+            <span class="range-value"><span id="max-speech-val">6.0</span> <span data-i18n="second">s</span></span>
+          </label>
+          <input type="range" id="max-speech" min="2.0" max="12.0" step="0.5" value="6.0">
+        </div>
+      </div>
+
+      <!-- Only while Label speakers (Live tab) is on -->
+      <div class="panel" id="speaker-tuning">
+        <div class="panel-title" data-i18n="titleSpeakers">Speaker Detection</div>
+        <div class="field" data-search="speaker separation voices people person similar split merge">
+          <label for="speaker-threshold" class="range-label">
+            <span data-i18n="labelSpeakerThreshold">Speaker Separation:</span>
+            <span class="range-value" id="speaker-threshold-val">0.50</span>
+          </label>
+          <input type="range" id="speaker-threshold" min="0.3" max="0.7" step="0.05" value="0.5">
+          <div class="hint" data-i18n="hintSpeakerThreshold">Higher tells similar voices apart but may split one person in two; lower merges similar voices.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title" data-i18n="titleTiming">Subtitle Timing</div>
+        <div class="field" data-search="duration linger stay time">
+          <label for="hold-time" class="range-label">
+            <span data-i18n="labelHoldTime">Extra Time On Screen:</span>
+            <span class="range-value"><span id="hold-time-val">1.5</span> <span data-i18n="second">s</span></span>
+          </label>
+          <input type="range" id="hold-time" min="0" max="5" step="0.5" value="1.5">
+        </div>
+        <div class="field" data-search="duration stay time minimum">
+          <label for="min-display" class="range-label">
+            <span data-i18n="labelMinDisplay">Minimum Display Time:</span>
+            <span class="range-value"><span id="min-display-val">3</span> <span data-i18n="second">s</span></span>
+          </label>
+          <input type="range" id="min-display" min="1" max="10" step="0.5" value="3">
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer" data-i18n="footerText">100% Offline Privacy Protection • xinjalin</footer>
+  </div>
+  <script src="i18n.js"></script>
+  <script src="subtitle-styles.js"></script>
+  <script src="lmstudio-api.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

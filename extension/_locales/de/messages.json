@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Local AI Live Translate"
+  },
+  "extDescription": {
+    "message": "Zweisprachige Echtzeit-Untertitel für Videos (100 % lokal & privat)"
+  },
+  "cmdToggle": {
+    "message": "Live-Übersetzung im aktuellen Tab starten oder stoppen"
+  }
+}

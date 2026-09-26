@@ -1,0 +1,65 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  code:
+    name: Code and translations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: JavaScript syntax
+        run: for f in extension/*.js tools/*.js; do node --check "$f"; done
+
+      - name: Translations complete (all popup languages, placeholders)
+        run: node tools/check_i18n.js
+
+      - name: JSON files valid
+        run: |
+          python - <<'EOF'
+          import glob, json
+          files = glob.glob("extension/**/*.json", recursive=True) + ["tools/dependencies.json"]
+          for f in files:
+              json.load(open(f, encoding="utf-8"))
+          print(f"{len(files)} JSON files OK")
+          EOF
+
+      - name: Extension and server versions match
+        run: |
+          python - <<'EOF'
+          import json, re
+          ext = json.load(open("extension/manifest.json", encoding="utf-8"))["version"]
+          srv = re.search(r'^VERSION = "(.+)"', open("server/live_translate_server.py", encoding="utf-8").read(), re.M).group(1)
+          assert ext == srv, f"extension/manifest.json {ext} != server VERSION {srv}"
+          print("version", ext)
+          EOF
+
+      - name: Python syntax
+        run: python -W error -m py_compile server/*.py tools/*.py
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # scan the whole history, not just the last commit
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

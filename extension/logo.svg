@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Local AI Live Translate logo. The popup embeds a themed copy of this artwork (popup.html). -->
+  <defs>
+    <linearGradient id="left" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#6d28d9"/>
+    </linearGradient>
+    <clipPath id="card">
+      <rect x="4" y="16" width="120" height="96" rx="20"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect x="4" y="16" width="120" height="96" fill="#ede9fe"/>
+    <polygon points="0,16 51,16 74,112 0,112" fill="url(#left)"/>
+  </g>
+  <path fill="#ffffff" fill-rule="evenodd"
+        d="M18.5 88 L28.8 40 L39.2 40 L49.5 88 L41.3 88 L39 77 L29 77 L26.7 88 Z M30.6 69.5 L37.4 69.5 L34 52 Z"/>
+  <g fill="none" stroke="#5b21b6" stroke-width="8">
+    <path d="M94 36v12"/>
+    <path d="M77 50h34"/>
+    <path d="M104 54 C 99 68 91 78 79 87"/>
+    <path d="M85 63 C 92 73 100 80 110 87"/>
+  </g>
+</svg>

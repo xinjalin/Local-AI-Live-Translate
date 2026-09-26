@@ -1,0 +1,77 @@
+name: Release
+
+# Pushing a version tag (e.g. `git tag v1.0.0 && git push origin v1.0.0`) builds the Windows bundle
+# and publishes it on the Releases page. It can also be re-run by hand for an existing tag.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and publish, e.g. v1.0.0"
+        required: true
+
+permissions:
+  contents: write # to create the release and upload its files
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  windows-bundle:
+    name: Build and publish the Windows bundle
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Tag matches the app version
+        shell: pwsh
+        run: |
+          $server = (Select-String -Path server/live_translate_server.py -Pattern '^VERSION = "(.+)"').Matches[0].Groups[1].Value
+          $extension = (Get-Content extension/manifest.json -Raw | ConvertFrom-Json).version
+          if ("v$server" -ne $env:TAG -or $server -ne $extension) {
+            throw "Tag $env:TAG, server VERSION $server and extension version $extension must match"
+          }
+
+      # The speech models (~760 MB) are cached between builds; a new cache is made when
+      # tools/dependencies.json changes. setup.ps1 still verifies what it downloads.
+      - name: Cache speech models
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: models-${{ hashFiles('tools/dependencies.json') }}
+
+      - name: Download Python, packages and models (exactly what a user's first run does)
+        shell: powershell # Windows PowerShell 5.1, as on users' PCs
+        run: .\tools\setup.ps1
+
+      - name: Build the bundle
+        run: runtime\python.exe -E -s tools\build_package.py
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem dist\*.zip | ForEach-Object {
+            "$((Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLower())  $($_.Name)"
+          } | Set-Content -Encoding ascii dist\SHA256SUMS.txt
+          Get-Content dist\SHA256SUMS.txt
+
+      - name: Publish on the Releases page
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(Get-ChildItem dist\*.zip, dist\SHA256SUMS.txt | ForEach-Object FullName)
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:TAG @files --clobber
+          } else {
+            gh release create $env:TAG @files --title "Local AI Live Translate $env:TAG" `
+              --notes-file .github/release-notes.md --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Publishing the release failed" }

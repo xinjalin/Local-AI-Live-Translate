@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Local AI Live Translate"
+  },
+  "extDescription": {
+    "message": "Sous-titres bilingues en temps réel pour vidéos (100 % local et privé)"
+  },
+  "cmdToggle": {
+    "message": "Démarrer ou arrêter la traduction en direct dans l'onglet actuel"
+  }
+}

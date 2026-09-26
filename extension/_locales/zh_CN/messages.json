@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Local AI Live Translate"
+  },
+  "extDescription": {
+    "message": "实时视频语音翻译双语字幕插件 (100% 本地与隐私)"
+  },
+  "cmdToggle": {
+    "message": "在当前标签页启动或停止实时翻译"
+  }
+}

@@ -1,0 +1,8 @@
+# sherpa-onnx 1.13.8 has a SenseVoice accuracy regression on the bundled test clips;
+# 1.13.3 recognises them correctly.
+sherpa-onnx==1.13.3
+sherpa-onnx-core==1.13.3
+numpy==2.5.3
+websockets==17.1
+httpx==0.28.1
+opencc==1.4.2

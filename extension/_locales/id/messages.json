@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Local AI Live Translate"
+  },
+  "extDescription": {
+    "message": "Subtitle dwibahasa waktu nyata untuk ucapan dalam video (100% lokal & privat)"
+  },
+  "cmdToggle": {
+    "message": "Mulai atau hentikan terjemahan langsung di tab saat ini"
+  }
+}

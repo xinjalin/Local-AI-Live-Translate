@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Local AI Live Translate"
+  },
+  "extDescription": {
+    "message": "Real-time bilingual subtitles for video speech (100% local & private)"
+  },
+  "cmdToggle": {
+    "message": "Start or stop live translation on the current tab"
+  }
+}

@@ -1,0 +1,29 @@
+# Downloaded on first run by tools/setup.ps1 (see tools/dependencies.json)
+/runtime/
+/models/
+/.setup-tmp/
+
+# Developer Python environment
+/server/.venv/
+__pycache__/
+*.py[cod]
+
+# Build output (published on the GitHub Releases page instead)
+/dist/
+
+# Personal data: saved subtitle transcripts
+/transcripts/
+
+# Secrets and local settings - never commit these
+.env
+.env.*
+*.key
+*.pem
+
+# Logs, editors, OS files
+*.log
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
