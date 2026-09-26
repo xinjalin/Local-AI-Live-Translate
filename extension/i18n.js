@@ -222,7 +222,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate 需要設定字幕翻譯語言;選擇「僅原文」時會改用本機語音引擎。",
     qwenNoKey: "輸入 API 金鑰以列出你的 Qwen Cloud 模型。",
     modelErrorQwen: "無法在 {url} 列出模型({err})。請檢查 API 金鑰與網址。",
-    tipCloud: "Qwen Cloud(聆聽 + 翻譯)"
+    tipCloud: "Qwen Cloud(聆聽 + 翻譯)",
+    optThemeOledLight: "OLED 淺色",
+    optThemeOledDim: "OLED 暗色",
+    optThemeOledBlack: "OLED 純黑"
   },
   'zh-CN': {
     subtitleDesc: '实时视频语音翻译字幕',
@@ -435,7 +438,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate 需要设置字幕翻译语言;选择“仅原文”时会改用本地语音引擎。",
     qwenNoKey: "输入 API 密钥以列出你的 Qwen Cloud 模型。",
     modelErrorQwen: "无法在 {url} 列出模型({err})。请检查 API 密钥和地址。",
-    tipCloud: "Qwen Cloud(收听 + 翻译)"
+    tipCloud: "Qwen Cloud(收听 + 翻译)",
+    optThemeOledLight: "OLED 浅色",
+    optThemeOledDim: "OLED 暗色",
+    optThemeOledBlack: "OLED 纯黑"
   },
   'en': {
     subtitleDesc: 'Real-time AI video translation',
@@ -648,7 +654,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate needs a subtitle translation language; with Original Only the local speech engine is used.",
     qwenNoKey: "Enter your API key to list your Qwen Cloud models.",
     modelErrorQwen: "Couldn't list models at {url} ({err}). Check the API key and URL.",
-    tipCloud: "Qwen Cloud (listen + translate)"
+    tipCloud: "Qwen Cloud (listen + translate)",
+    optThemeOledLight: "OLED Light",
+    optThemeOledDim: "OLED Dim",
+    optThemeOledBlack: "OLED Black"
   },
   'ja': {
     subtitleDesc: 'リアルタイムのビデオ音声翻訳字幕',
@@ -861,7 +870,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate には字幕の翻訳言語が必要です。「原文のみ」ではローカルの音声エンジンを使います。",
     qwenNoKey: "API キーを入力すると Qwen Cloud のモデル一覧を表示します。",
     modelErrorQwen: "{url} でモデル一覧を取得できませんでした({err})。API キーと URL を確認してください。",
-    tipCloud: "Qwen Cloud(聞き取り + 翻訳)"
+    tipCloud: "Qwen Cloud(聞き取り + 翻訳)",
+    optThemeOledLight: "OLED ライト",
+    optThemeOledDim: "OLED ディム",
+    optThemeOledBlack: "OLED ブラック"
   },
   'ko': {
     subtitleDesc: '실시간 비디오 음성 번역 자막',
@@ -1074,7 +1086,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate에는 자막 번역 언어가 필요합니다. '원문만'을 선택하면 로컬 음성 엔진을 사용합니다.",
     qwenNoKey: "API 키를 입력하면 Qwen Cloud 모델 목록을 불러옵니다.",
     modelErrorQwen: "{url}에서 모델 목록을 가져오지 못했습니다({err}). API 키와 URL을 확인하세요.",
-    tipCloud: "Qwen Cloud (듣기 + 번역)"
+    tipCloud: "Qwen Cloud (듣기 + 번역)",
+    optThemeOledLight: "OLED 라이트",
+    optThemeOledDim: "OLED 딤",
+    optThemeOledBlack: "OLED 블랙"
   },
   'es': {
     subtitleDesc: 'Subtítulos traducidos en tiempo real para vídeos',
@@ -1287,7 +1302,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate necesita un idioma de traducción; con «Solo original» se usa el motor de voz local.",
     qwenNoKey: "Introduce tu clave API para ver tus modelos de Qwen Cloud.",
     modelErrorQwen: "No se pudieron listar los modelos en {url} ({err}). Revisa la clave API y la URL.",
-    tipCloud: "Qwen Cloud (escucha + traducción)"
+    tipCloud: "Qwen Cloud (escucha + traducción)",
+    optThemeOledLight: "OLED claro",
+    optThemeOledDim: "OLED atenuado",
+    optThemeOledBlack: "OLED negro"
   },
   'fr': {
     subtitleDesc: 'Sous-titres traduits en temps réel pour vidéos',
@@ -1500,7 +1518,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate a besoin d'une langue de traduction ; avec « Original uniquement », le moteur vocal local est utilisé.",
     qwenNoKey: "Saisissez votre clé API pour afficher vos modèles Qwen Cloud.",
     modelErrorQwen: "Impossible de lister les modèles sur {url} ({err}). Vérifiez la clé API et l'URL.",
-    tipCloud: "Qwen Cloud (écoute + traduction)"
+    tipCloud: "Qwen Cloud (écoute + traduction)",
+    optThemeOledLight: "OLED clair",
+    optThemeOledDim: "OLED tamisé",
+    optThemeOledBlack: "OLED noir"
   },
   'de': {
     subtitleDesc: 'Echtzeit-Übersetzungsuntertitel für Videos',
@@ -1713,7 +1734,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate braucht eine Übersetzungssprache; mit „Nur Original“ wird die lokale Spracherkennung genutzt.",
     qwenNoKey: "Gib deinen API-Schlüssel ein, um deine Qwen Cloud-Modelle anzuzeigen.",
     modelErrorQwen: "Modelle unter {url} konnten nicht abgerufen werden ({err}). Prüfe API-Schlüssel und URL.",
-    tipCloud: "Qwen Cloud (hören + übersetzen)"
+    tipCloud: "Qwen Cloud (hören + übersetzen)",
+    optThemeOledLight: "OLED Hell",
+    optThemeOledDim: "OLED Gedimmt",
+    optThemeOledBlack: "OLED Schwarz"
   },
   'ru': {
     subtitleDesc: 'Перевод субтитров к видео в реальном времени',
@@ -1926,7 +1950,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate нужен язык перевода; при «Только оригинал» используется локальный движок распознавания.",
     qwenNoKey: "Введите API-ключ, чтобы увидеть свои модели Qwen Cloud.",
     modelErrorQwen: "Не удалось получить список моделей по адресу {url} ({err}). Проверьте API-ключ и URL.",
-    tipCloud: "Qwen Cloud (слушает + переводит)"
+    tipCloud: "Qwen Cloud (слушает + переводит)",
+    optThemeOledLight: "OLED светлая",
+    optThemeOledDim: "OLED приглушённая",
+    optThemeOledBlack: "OLED чёрная"
   },
   'id': {
     subtitleDesc: "Terjemahan video AI waktu nyata",
@@ -2139,7 +2166,10 @@ const LC_I18N = {
     qwenNeedsTarget: "LiveTranslate memerlukan bahasa terjemahan; dengan Hanya Asli, mesin ucapan lokal yang dipakai.",
     qwenNoKey: "Masukkan kunci API untuk menampilkan model Qwen Cloud Anda.",
     modelErrorQwen: "Tidak dapat mengambil daftar model di {url} ({err}). Periksa kunci API dan URL.",
-    tipCloud: "Qwen Cloud (dengar + terjemahkan)"
+    tipCloud: "Qwen Cloud (dengar + terjemahkan)",
+    optThemeOledLight: "OLED Terang",
+    optThemeOledDim: "OLED Redup",
+    optThemeOledBlack: "OLED Hitam"
   }
 };
 
