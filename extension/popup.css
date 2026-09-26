@@ -254,6 +254,245 @@
   --menu-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
+/* OLED family: flat surfaces and a blue accent (#1d9bf0), in three brightness levels -
+   OLED Light (white), OLED Dim (dark navy) and OLED Black (true #000: on OLED / AMOLED
+   screens black pixels are switched off, so it has no background glow at all). */
+
+:root[data-theme="oled-light"] {
+  --scheme-page: light;
+  --scheme-panel: light;
+
+  --page-bg: #ffffff;
+  --page-glow: none;
+  --text: #0f1419;
+  --text-muted: #536471;
+
+  --accent: #1d9bf0;
+  --accent-strong: #1a8cd8;
+  --accent-soft: rgba(29, 155, 240, 0.1);
+  --accent-soft-border: rgba(29, 155, 240, 0.35);
+  --logo-left-a: #4cb3f5;
+  --logo-left-b: #1a8cd8;
+  --logo-right: #0f1419;
+  --logo-a: #ffffff;
+  --logo-wen: #8ecdf8;
+  --logo-edge: rgba(15, 20, 25, 0.1);
+
+  --hero-bg: #f7f9f9;
+  --hero-sheen: none;
+  --hero-border: #eff3f4;
+  --hero-text: #0f1419;
+  --hero-muted: #536471;
+  --hero-accent: #1d9bf0;
+  --hero-shadow: 0 1px 3px rgba(15, 20, 25, 0.08);
+
+  --panel-bg: #ffffff;
+  --panel-border: #eff3f4;
+  --panel-text: #0f1419;
+  --panel-muted: #536471;
+  --field-bg: #f7f9f9;
+  --field-border: #cfd9de;
+  --field-text: #0f1419;
+  --field-placeholder: #8b98a5;
+  --focus-ring: rgba(29, 155, 240, 0.35);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23536471' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --seg-bg: #f7f9f9;
+  --seg-border: #eff3f4;
+  --seg-text: #536471;
+  --seg-active-bg: rgba(29, 155, 240, 0.1);
+  --seg-active-border: rgba(29, 155, 240, 0.45);
+  --seg-active-text: #1a8cd8;
+
+  --btn-bg: #1d9bf0;
+  --btn-text: #ffffff;
+  --btn-shadow: 0 8px 20px rgba(29, 155, 240, 0.25);
+  --btn-stop-bg: rgba(244, 33, 46, 0.08);
+  --btn-stop-border: rgba(244, 33, 46, 0.4);
+  --btn-stop-text: #f4212e;
+  --icon-bg: #f7f9f9;
+  --icon-text: #1d9bf0;
+  --switch-off: #cfd9de;
+  --switch-on: #1d9bf0;
+  --switch-knob: #ffffff;
+
+  --success: #00ba7c;
+  --warning: #d97706;
+  --danger: #f4212e;
+  --chip-bg: #f7f9f9;
+  --chip-text: #536471;
+  --chip-live-bg: rgba(29, 155, 240, 0.1);
+  --rec-dot: #9d1747;
+  --rec-dot-bright: #c21f5a;
+  --rec-glow: rgba(194, 31, 90, 0.35);
+  --chip-live-text: #1a8cd8;
+
+  --menu-bg: #ffffff;
+  --menu-border: #eff3f4;
+  --menu-text: #0f1419;
+  --menu-muted: #536471;
+  --menu-active: rgba(29, 155, 240, 0.1);
+  --menu-mark: #1a8cd8;
+  --menu-shadow: 0 8px 28px rgba(101, 119, 134, 0.25);
+}
+
+:root[data-theme="oled-dim"] {
+  --scheme-page: dark;
+  --scheme-panel: dark;
+
+  --page-bg: #15202b;
+  --page-glow: radial-gradient(120% 55% at 105% 105%, rgba(29, 155, 240, 0.14), transparent 62%);
+  --text: #f7f9f9;
+  --text-muted: #8b98a5;
+
+  --accent: #1d9bf0;
+  --accent-strong: #1a8cd8;
+  --accent-soft: rgba(29, 155, 240, 0.14);
+  --accent-soft-border: rgba(29, 155, 240, 0.45);
+  --logo-left-a: #4cb3f5;
+  --logo-left-b: #1a8cd8;
+  --logo-right: #273340;
+  --logo-a: #ffffff;
+  --logo-wen: #8ecdf8;
+  --logo-edge: rgba(255, 255, 255, 0.1);
+
+  --hero-bg: #1e2732;
+  --hero-sheen: radial-gradient(85% 70% at 25% -10%, rgba(29, 155, 240, 0.14), transparent 60%);
+  --hero-border: #38444d;
+  --hero-text: #f7f9f9;
+  --hero-muted: #8b98a5;
+  --hero-accent: #1d9bf0;
+  --hero-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+
+  --panel-bg: #1e2732;
+  --panel-border: #38444d;
+  --panel-text: #f7f9f9;
+  --panel-muted: #8b98a5;
+  --field-bg: #15202b;
+  --field-border: #38444d;
+  --field-text: #f7f9f9;
+  --field-placeholder: #6e7c8a;
+  --focus-ring: rgba(29, 155, 240, 0.4);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b98a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --seg-bg: #1e2732;
+  --seg-border: #38444d;
+  --seg-text: #8b98a5;
+  --seg-active-bg: rgba(29, 155, 240, 0.16);
+  --seg-active-border: rgba(29, 155, 240, 0.5);
+  --seg-active-text: #4cb3f5;
+
+  --btn-bg: #1d9bf0;
+  --btn-text: #ffffff;
+  --btn-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  --btn-stop-bg: rgba(244, 33, 46, 0.12);
+  --btn-stop-border: rgba(244, 33, 46, 0.5);
+  --btn-stop-text: #ff6b75;
+  --icon-bg: #273340;
+  --icon-text: #4cb3f5;
+  --switch-off: #38444d;
+  --switch-on: #1d9bf0;
+  --switch-knob: #ffffff;
+
+  --success: #00ba7c;
+  --warning: #fbbf24;
+  --danger: #ff5c67;
+  --chip-bg: rgba(255, 255, 255, 0.06);
+  --chip-text: #8b98a5;
+  --chip-live-bg: rgba(29, 155, 240, 0.14);
+  --rec-dot: #c0265f;
+  --rec-dot-bright: #e0306f;
+  --rec-glow: rgba(224, 48, 111, 0.45);
+  --chip-live-text: #4cb3f5;
+
+  --menu-bg: #1e2732;
+  --menu-border: #38444d;
+  --menu-text: #f7f9f9;
+  --menu-muted: #8b98a5;
+  --menu-active: rgba(29, 155, 240, 0.14);
+  --menu-mark: #4cb3f5;
+  --menu-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="oled-black"] {
+  --scheme-page: dark;
+  --scheme-panel: dark;
+
+  --page-bg: #000000;
+  --page-glow: none;
+  --text: #e7e9ea;
+  --text-muted: #71767b;
+
+  --accent: #1d9bf0;
+  --accent-strong: #1a8cd8;
+  --accent-soft: rgba(29, 155, 240, 0.12);
+  --accent-soft-border: rgba(29, 155, 240, 0.45);
+  --logo-left-a: #4cb3f5;
+  --logo-left-b: #1a8cd8;
+  --logo-right: #16181c;
+  --logo-a: #ffffff;
+  --logo-wen: #8ecdf8;
+  --logo-edge: rgba(255, 255, 255, 0.12);
+
+  --hero-bg: #16181c;
+  --hero-sheen: none;
+  --hero-border: #2f3336;
+  --hero-text: #e7e9ea;
+  --hero-muted: #71767b;
+  --hero-accent: #1d9bf0;
+  --hero-shadow: none;
+
+  --panel-bg: #000000;
+  --panel-border: #2f3336;
+  --panel-text: #e7e9ea;
+  --panel-muted: #71767b;
+  --field-bg: #000000;
+  --field-border: #333639;
+  --field-text: #e7e9ea;
+  --field-placeholder: #536471;
+  --focus-ring: rgba(29, 155, 240, 0.45);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371767b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --seg-bg: #000000;
+  --seg-border: #2f3336;
+  --seg-text: #71767b;
+  --seg-active-bg: rgba(29, 155, 240, 0.15);
+  --seg-active-border: rgba(29, 155, 240, 0.5);
+  --seg-active-text: #1d9bf0;
+
+  --btn-bg: #1d9bf0;
+  --btn-text: #ffffff;
+  --btn-shadow: none;
+  --btn-stop-bg: rgba(244, 33, 46, 0.1);
+  --btn-stop-border: rgba(244, 33, 46, 0.5);
+  --btn-stop-text: #ff5c67;
+  --icon-bg: #16181c;
+  --icon-text: #1d9bf0;
+  --switch-off: #333639;
+  --switch-on: #1d9bf0;
+  --switch-knob: #ffffff;
+
+  --success: #00ba7c;
+  --warning: #fbbf24;
+  --danger: #ff5c67;
+  --chip-bg: #16181c;
+  --chip-text: #71767b;
+  --chip-live-bg: rgba(29, 155, 240, 0.14);
+  --rec-dot: #c0265f;
+  --rec-dot-bright: #e0306f;
+  --rec-glow: rgba(224, 48, 111, 0.45);
+  --chip-live-text: #1d9bf0;
+
+  --menu-bg: #000000;
+  --menu-border: #2f3336;
+  --menu-text: #e7e9ea;
+  --menu-muted: #71767b;
+  --menu-active: #16181c;
+  --menu-mark: #1d9bf0;
+  /* on true black a dark shadow is invisible: a faint light halo separates the menu instead */
+  --menu-shadow: 0 0 15px rgba(255, 255, 255, 0.12), 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
 /* ==========================================================================
    Layout (identical for every theme)
    ========================================================================== */

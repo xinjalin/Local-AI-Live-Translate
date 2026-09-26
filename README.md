@@ -204,7 +204,10 @@ button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied 
   on screen*.
 - **Save transcripts** (Live tab) is off by default. When on, each session is saved as a Markdown
   file in `transcripts/`, with the original and translated text of every line.
-- **Themes:** Dark, Light, Hybrid (dark shell with light panels) and System, on the Display tab.
+- **Themes** (Display tab): Dark, Light, Hybrid (dark shell with light panels), System, and the OLED
+  family with a blue accent — **OLED Light** (white), **OLED Dim** (dark navy) and **OLED Black**
+  (true black `#000`, no background glow: on OLED / AMOLED screens black pixels are switched off).
+  Themes only change colours; the layout is the same in all of them.
 
 ## Server options
 
