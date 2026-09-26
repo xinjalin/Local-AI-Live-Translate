@@ -13,6 +13,6 @@
 3. Start [LM Studio](https://lmstudio.ai/)'s local server with a translation model (Tencent Hy-MT2-7B recommended), or use Ollama or Qwen Cloud.
 4. Open a video, click the extension icon, pick your languages and press **Start Live Translate**.
 
-Running from a `git clone` instead? `START_Local_AI_Live_Translate.bat` downloads Python, its packages and the speech models on the first run (~850 MB, each file checked against a pinned checksum).
+Running from a `git clone` instead? `START_Local_AI_Live_Translate.bat` downloads Python, its packages and the speech models on the first run (~1.1 GB, each file checked against a pinned checksum).
 
 See the [README](https://github.com/xinjalin/Local-AI-Live-Translate#readme) for all the features and settings.

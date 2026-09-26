@@ -443,7 +443,8 @@ async function checkSpeakerSupport() {
 const ASR_ENGINES = {
   sensevoice: { name: 'SenseVoice', langs: ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'] },
   whisper: { name: 'Whisper-Small', langs: null },
-  dolphin: { name: 'Dolphin', langs: ['zh-TW', 'zh-CN', 'ja', 'ko', 'ru', 'id', 'vi', 'th', 'ms', 'fil'] }
+  dolphin: { name: 'Dolphin', langs: ['zh-TW', 'zh-CN', 'ja', 'ko', 'ru', 'id', 'vi', 'th', 'ms', 'fil', 'hi', 'ar'] },
+  omnilingual: { name: 'Omnilingual', langs: null }
 };
 
 function asrSupports(engine, lang) {
@@ -451,9 +452,12 @@ function asrSupports(engine, lang) {
   return lang === 'auto' || !langs || langs.includes(lang);
 }
 
-// Where Dolphin small was measured to be the better stand-in (FALLBACK_ORDER in the server): as
-// accurate as Whisper-Small or better, and ~9x faster.
-const ASR_FALLBACK_ORDER = Object.fromEntries(['id', 'vi', 'th', 'ms', 'fil'].map(l => [l, ['dolphin', 'whisper']]));
+// Where another engine was measured to be the better stand-in (FALLBACK_ORDER in the server):
+// Dolphin small for the South-East Asian languages, Omnilingual for Hindi and Arabic.
+const ASR_FALLBACK_ORDER = {
+  ...Object.fromEntries(['id', 'vi', 'th', 'ms', 'fil'].map(l => [l, ['dolphin', 'whisper']])),
+  ...Object.fromEntries(['hi', 'ar'].map(l => [l, ['omnilingual', 'dolphin', 'whisper']]))
+};
 
 function engineInUse(engine, lang) {
   if (asrSupports(engine, lang)) return engine;
@@ -483,11 +487,14 @@ function updateAsrNote() {
   }
   const best = bestEngine(lang);
   if (used === 'whisper' && lang !== 'auto' && !asrSupports('sensevoice', lang)) {
-    parts.push(t('asrWhisperSlow'));
+    // (Whisper-Small isn't accurate where Omnilingual is the pick: 79% word errors for Hindi)
+    if (best !== 'omnilingual') parts.push(t('asrWhisperSlow'));
     if (best === 'dolphin') parts.push(t('asrTryDolphin'));
+    if (best === 'omnilingual') parts.push(t('asrTryOmnilingual'));
   }
-  // Dolphin picked for a language another engine handles better (e.g. Japanese -> SenseVoice)
-  if (used === 'dolphin' && lang !== 'auto' && best !== 'dolphin') {
+  // Dolphin or Omnilingual picked for a language another engine handles better
+  // (e.g. Japanese -> SenseVoice, Hindi -> Omnilingual)
+  if ((used === 'dolphin' || used === 'omnilingual') && lang !== 'auto' && best !== used) {
     parts.push(t('asrDolphinNote', { engine: ASR_ENGINES[best].name }));
   }
   note.textContent = parts.join(' ');

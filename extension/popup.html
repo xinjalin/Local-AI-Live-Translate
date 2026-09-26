@@ -138,12 +138,13 @@
           <label for="target-lang" data-i18n="labelTargetLang">Subtitle Translation Language</label>
           <select id="target-lang" class="lang-select" data-first-value="none" data-first-i18n="optTargetNone"></select>
         </div>
-        <div class="field" data-search="speech recognition sensevoice whisper dolphin asr">
+        <div class="field" data-search="speech recognition sensevoice whisper dolphin omnilingual asr">
           <label for="asr-engine" data-i18n="labelAsrEngine">Speech Recognition Engine</label>
           <select id="asr-engine">
             <option value="sensevoice" data-i18n="optAsrSensevoice">SenseVoice (Fast Mode)</option>
             <option value="whisper" data-i18n="optAsrWhisper">Whisper-Small (accurate, 99 languages)</option>
             <option value="dolphin" data-i18n="optAsrDolphin">Dolphin (fast, Asian languages)</option>
+            <option value="omnilingual" data-i18n="optAsrOmnilingual">Omnilingual (1,600+ languages)</option>
           </select>
           <!-- Which engine really runs for the chosen video language (see ASR_ENGINES) -->
           <div class="hint" id="asr-note" hidden></div>

@@ -33,6 +33,7 @@ MODEL_SRC = ROOT / "models"
 SENSE_VOICE = "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17"
 WHISPER = "sherpa-onnx-whisper-small"
 DOLPHIN = "sherpa-onnx-dolphin-small-ctc-multi-lang-int8-2025-04-02"
+OMNI = "sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-v2-int8-2026-02-05"
 
 # Parts of the Python install the server never uses.
 RUNTIME_LIB_SKIP = {"test", "idlelib", "tkinter", "turtledemo", "ensurepip", "site-packages", "__pycache__"}
@@ -147,6 +148,7 @@ def main():
     copytree(MODEL_SRC / SENSE_VOICE, models / SENSE_VOICE)
     copytree(MODEL_SRC / "speaker", models / "speaker")  # speaker labels (28 MB)
     copytree(MODEL_SRC / DOLPHIN, models / DOLPHIN, ignore=shutil.ignore_patterns("test_wavs"))  # 250 MB
+    copytree(MODEL_SRC / OMNI, models / OMNI, ignore=shutil.ignore_patterns("test_wavs"))  # 366 MB
     if not args.no_whisper:
         copytree(MODEL_SRC / WHISPER, models / WHISPER)
     log(f"  models: {size_of(models) / 1e6:.0f} MB")
