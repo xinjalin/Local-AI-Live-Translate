@@ -5,7 +5,7 @@
 const LC_UI_LANGS = ['zh-TW', 'zh-CN', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'ru', 'id'];
 // Languages for the video and the subtitles: the popup languages plus ones that only need speech
 // recognition (Dolphin) and translation, not a translated popup.
-const LC_LANG_CODES = [...LC_UI_LANGS, 'vi', 'th', 'ms', 'fil'];
+const LC_LANG_CODES = [...LC_UI_LANGS, 'vi', 'th', 'ms', 'fil', 'hi', 'ar'];
 
 // Intl.DisplayNames needs script subtags to tell the two Chinese variants apart.
 const LC_INTL_CODE = { 'zh-TW': 'zh-Hant', 'zh-CN': 'zh-Hans' };
@@ -225,7 +225,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud(聆聽 + 翻譯)",
     optThemeOledLight: "OLED 淺色",
     optThemeOledDim: "OLED 暗色",
-    optThemeOledBlack: "OLED 純黑"
+    optThemeOledBlack: "OLED 純黑",
+    optAsrOmnilingual: "Omnilingual(1,600 多種語言)",
+    asrTryOmnilingual: "Omnilingual 對此語言準確得多,而且更快。"
   },
   'zh-CN': {
     subtitleDesc: '实时视频语音翻译字幕',
@@ -441,7 +443,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud(收听 + 翻译)",
     optThemeOledLight: "OLED 浅色",
     optThemeOledDim: "OLED 暗色",
-    optThemeOledBlack: "OLED 纯黑"
+    optThemeOledBlack: "OLED 纯黑",
+    optAsrOmnilingual: "Omnilingual(1,600 多种语言)",
+    asrTryOmnilingual: "Omnilingual 对该语言准确得多,而且更快。"
   },
   'en': {
     subtitleDesc: 'Real-time AI video translation',
@@ -657,7 +661,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud (listen + translate)",
     optThemeOledLight: "OLED Light",
     optThemeOledDim: "OLED Dim",
-    optThemeOledBlack: "OLED Black"
+    optThemeOledBlack: "OLED Black",
+    optAsrOmnilingual: "Omnilingual (1,600+ languages)",
+    asrTryOmnilingual: "Omnilingual is much more accurate for this language, and faster."
   },
   'ja': {
     subtitleDesc: 'リアルタイムのビデオ音声翻訳字幕',
@@ -873,7 +879,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud(聞き取り + 翻訳)",
     optThemeOledLight: "OLED ライト",
     optThemeOledDim: "OLED ディム",
-    optThemeOledBlack: "OLED ブラック"
+    optThemeOledBlack: "OLED ブラック",
+    optAsrOmnilingual: "Omnilingual(1,600 以上の言語)",
+    asrTryOmnilingual: "この言語では Omnilingual の方がはるかに正確で、しかも高速です。"
   },
   'ko': {
     subtitleDesc: '실시간 비디오 음성 번역 자막',
@@ -1089,7 +1097,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud (듣기 + 번역)",
     optThemeOledLight: "OLED 라이트",
     optThemeOledDim: "OLED 딤",
-    optThemeOledBlack: "OLED 블랙"
+    optThemeOledBlack: "OLED 블랙",
+    optAsrOmnilingual: "Omnilingual (1,600개 이상 언어)",
+    asrTryOmnilingual: "이 언어에는 Omnilingual이 훨씬 정확하고 더 빠릅니다."
   },
   'es': {
     subtitleDesc: 'Subtítulos traducidos en tiempo real para vídeos',
@@ -1305,7 +1315,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud (escucha + traducción)",
     optThemeOledLight: "OLED claro",
     optThemeOledDim: "OLED atenuado",
-    optThemeOledBlack: "OLED negro"
+    optThemeOledBlack: "OLED negro",
+    optAsrOmnilingual: "Omnilingual (más de 1600 idiomas)",
+    asrTryOmnilingual: "Omnilingual es mucho más preciso para este idioma, y más rápido."
   },
   'fr': {
     subtitleDesc: 'Sous-titres traduits en temps réel pour vidéos',
@@ -1521,7 +1533,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud (écoute + traduction)",
     optThemeOledLight: "OLED clair",
     optThemeOledDim: "OLED tamisé",
-    optThemeOledBlack: "OLED noir"
+    optThemeOledBlack: "OLED noir",
+    optAsrOmnilingual: "Omnilingual (plus de 1 600 langues)",
+    asrTryOmnilingual: "Omnilingual est bien plus précis pour cette langue, et plus rapide."
   },
   'de': {
     subtitleDesc: 'Echtzeit-Übersetzungsuntertitel für Videos',
@@ -1737,7 +1751,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud (hören + übersetzen)",
     optThemeOledLight: "OLED Hell",
     optThemeOledDim: "OLED Gedimmt",
-    optThemeOledBlack: "OLED Schwarz"
+    optThemeOledBlack: "OLED Schwarz",
+    optAsrOmnilingual: "Omnilingual (über 1.600 Sprachen)",
+    asrTryOmnilingual: "Omnilingual ist für diese Sprache viel genauer und schneller."
   },
   'ru': {
     subtitleDesc: 'Перевод субтитров к видео в реальном времени',
@@ -1953,7 +1969,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud (слушает + переводит)",
     optThemeOledLight: "OLED светлая",
     optThemeOledDim: "OLED приглушённая",
-    optThemeOledBlack: "OLED чёрная"
+    optThemeOledBlack: "OLED чёрная",
+    optAsrOmnilingual: "Omnilingual (более 1600 языков)",
+    asrTryOmnilingual: "Для этого языка Omnilingual гораздо точнее и быстрее."
   },
   'id': {
     subtitleDesc: "Terjemahan video AI waktu nyata",
@@ -2169,7 +2187,9 @@ const LC_I18N = {
     tipCloud: "Qwen Cloud (dengar + terjemahkan)",
     optThemeOledLight: "OLED Terang",
     optThemeOledDim: "OLED Redup",
-    optThemeOledBlack: "OLED Hitam"
+    optThemeOledBlack: "OLED Hitam",
+    optAsrOmnilingual: "Omnilingual (1.600+ bahasa)",
+    asrTryOmnilingual: "Omnilingual jauh lebih akurat untuk bahasa ini, dan lebih cepat."
   }
 };
 

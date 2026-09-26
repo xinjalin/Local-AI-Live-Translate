@@ -37,7 +37,7 @@ run offline.
 git clone https://github.com/xinjalin/Local-AI-Live-Translate.git
 ```
 
-The first run of `START_Local_AI_Live_Translate.bat` downloads what the app needs (~850 MB, one time):
+The first run of `START_Local_AI_Live_Translate.bat` downloads what the app needs (~1.1 GB, one time):
 a portable Python 3.14 (python.org's NuGet package — no installer, no admin rights), its packages from
 PyPI, and the speech models. Every file is checked against a checksum pinned in
 [`tools/dependencies.json`](tools/dependencies.json) before it is used. After a `git pull`, anything
@@ -66,7 +66,7 @@ button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied 
 | `extension/` | The Chrome extension (load it unpacked) |
 | `server/` | Server source: `live_translate_server.py`, `translator.py`, `qwen_live.py`, `requirements.txt` |
 | `tools/` | `setup.ps1` (first-run downloads, pinned in `dependencies.json`), `build_package.py` (release bundle), `check_i18n.js` |
-| `models/` | Speech models: Silero VAD, SenseVoice (zh/en/ja/ko/yue), Whisper-Small, Dolphin small (Asian languages), and the CAM++ speaker model in `models/speaker/` |
+| `models/` | Speech models: Silero VAD, SenseVoice (zh/en/ja/ko/yue), Whisper-Small, Dolphin small (Asian languages), Omnilingual 300M (Hindi, Arabic, …), and the CAM++ speaker model in `models/speaker/` |
 | `runtime/` | Private Python 3.14 with all packages installed (in releases; downloaded on first run from source) |
 | `transcripts/` | Markdown transcripts, when **Save transcripts** is switched on |
 
@@ -165,20 +165,22 @@ button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied 
   comes from (LM Studio catalog or Hugging Face repo) — keep the app server running while exporting so
   it can look this up for models added from Hugging Face.
 - **Languages:** the video and subtitle languages can each be Traditional or Simplified Chinese,
-  English, Japanese, Korean, Spanish, French, German, Russian, Indonesian, Vietnamese, Thai, Malay
-  or Filipino. The popup itself is available in the first ten.
+  English, Japanese, Korean, Spanish, French, German, Russian, Indonesian, Vietnamese, Thai, Malay,
+  Filipino, Hindi or Arabic. The popup itself is available in the first ten. Arabic subtitles are
+  laid out right to left.
 - **Speech engine** (Live tab):
 
   | Engine | Recognises | Speed (per line) | Notes |
   |---|---|---|---|
   | SenseVoice | Chinese, Cantonese, English, Japanese, Korean | ~0.1 s | The default; best for these |
   | Dolphin (small) | 40 Asian languages (Indonesian, Vietnamese, Thai, Malay, Filipino, Hindi, …) | ~0.2–0.7 s | Used automatically for Indonesian, Vietnamese, Thai, Malay and Filipino |
+  | Omnilingual (Meta, 300M) | 1,600+ languages | ~0.3–0.8 s | Used automatically for Hindi and Arabic |
   | Whisper-Small | 99 languages | ~1.5–4 s | Covers everything else (Spanish, French, German, Russian, …) |
 
   If the chosen engine can't recognise the video language, the server switches to the best one that
   can, and the popup says so: SenseVoice where possible, Dolphin for the five South-East Asian
-  languages, otherwise Whisper-Small. Measured on Google FLEURS recordings (errors, Dolphin small vs
-  Whisper-Small):
+  languages, Omnilingual for Hindi and Arabic (Dolphin as their fallback), otherwise Whisper-Small.
+  Measured on Google FLEURS recordings (errors, Dolphin small vs Whisper-Small):
 
   | Language | Dolphin small | Whisper-Small |
   |---|---|---|
@@ -187,6 +189,11 @@ button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied 
   | Malay | 9.9 % WER | 12.6 % WER |
   | Filipino | 28.8 % WER | 35.3 % WER |
   | Thai (per character) | 9.9 % CER | 49.3 % CER |
+
+  Hindi and Arabic (word errors): Omnilingual 6.1 % / 15.8 %, Dolphin small 14.3 % / 19.4 %,
+  Whisper-Small 79 % (unusable for Hindi) / 25.5 %. Hy-MT2-7B translates both well (chrF into
+  English 65 / 66, ahead of Gemma-4-12B and Qwen3.5-9B). The Arabic test is Modern Standard Arabic;
+  dialects (Egyptian, Gulf, …) are untested.
 
   Dolphin is also ~9× faster: a full subtitle into English took 1.1–1.8 s, against 2.8–5.3 s with
   Whisper-Small. Set the video language rather than *Auto Detect* for languages SenseVoice doesn't

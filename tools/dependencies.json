@@ -57,6 +57,25 @@
       ]
     },
     {
+      "name": "Omnilingual ASR 300M (speech recognition: Hindi, Arabic and 1,600+ languages)",
+      "size_mb": 292,
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-v2-int8-2026-02-05.tar.bz2",
+        "sha256": "951b32409aade32bd525310bb39e9666773ba3fc611a39e817f620936d76c631",
+        "extract_to": "models"
+      },
+      "files": [
+        {
+          "path": "models/sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-v2-int8-2026-02-05/model.int8.onnx",
+          "sha256": "e3042b2f3b3ef0af2211bf99d2b4bf94a21f5ac0e9898827e7dd6d003a860e91"
+        },
+        {
+          "path": "models/sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-v2-int8-2026-02-05/tokens.txt",
+          "sha256": "7d99997ef207ff14c2cfe825f2aa037528ea250113cc3c6392bfe49326884ba6"
+        }
+      ]
+    },
+    {
       "name": "Whisper-Small (speech recognition: 99 languages)",
       "size_mb": 375,
       "files": [

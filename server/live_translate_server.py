@@ -60,6 +60,8 @@ SENSE_VOICE_DIR = MODEL_DIR / "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024
 WHISPER_DIR = MODEL_DIR / "sherpa-onnx-whisper-small"
 # Dolphin small (DataoceanAI): CTC model for 40 Asian languages (Indonesian, Thai, Vietnamese, ...).
 DOLPHIN_DIR = MODEL_DIR / "sherpa-onnx-dolphin-small-ctc-multi-lang-int8-2025-04-02"
+# Omnilingual ASR 300M (Meta): CTC model for 1,600+ languages; the engine for Hindi and Arabic.
+OMNI_DIR = MODEL_DIR / "sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-v2-int8-2026-02-05"
 # Speaker detection: 3D-Speaker CAM++ voice embeddings (192 values per line), Chinese + English
 # training data but works for any language since it models the voice, not the words.
 SPEAKER_MODEL = MODEL_DIR / "speaker" / "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx"
@@ -71,10 +73,13 @@ SENSE_VOICE_LANGS = {"zh-TW": "zh", "zh-CN": "zh", "en": "en", "ja": "ja", "ko":
 #   Indonesian 18.4% vs 18.0% WER, Vietnamese 10.3% vs 10.8%, Malay 9.9% vs 12.6%,
 #   Filipino 28.8% vs 35.3%, Thai 9.9% vs 49.3% CER - with Dolphin ~9x faster (~0.05 s per second
 #   of speech against ~0.4 s). SenseVoice can't recognise any of these.
+# Hindi / Arabic (FLEURS, word errors): Omnilingual 6.1% / 15.8%, Dolphin 14.3% / 19.4%,
+#   Whisper-Small 79% (unusable) / 25.5%; Omnilingual ~0.07 s per second of speech.
 ENGINE_LANGS = {
     "sensevoice": {"zh-TW", "zh-CN", "en", "ja", "ko"},
-    "dolphin": {"zh-TW", "zh-CN", "ja", "ko", "ru", "id", "vi", "th", "ms", "fil"},
+    "dolphin": {"zh-TW", "zh-CN", "ja", "ko", "ru", "id", "vi", "th", "ms", "fil", "hi", "ar"},
     "whisper": None,
+    "omnilingual": None,
 }
 # Whisper's codes where they differ from the extension's.
 WHISPER_CODES = {"zh-TW": "zh", "zh-CN": "zh", "fil": "tl"}
@@ -82,6 +87,7 @@ ENGINE_FILES = {
     "sensevoice": SENSE_VOICE_DIR / "model.int8.onnx",
     "whisper": WHISPER_DIR / "small-encoder.int8.onnx",
     "dolphin": DOLPHIN_DIR / "model.int8.onnx",
+    "omnilingual": OMNI_DIR / "model.int8.onnx",
 }
 
 
@@ -90,10 +96,14 @@ def available_engines():
 
 
 # Engines to switch to, in order, when the chosen one can't recognise a language: SenseVoice
-# wherever it can (fastest), then Whisper-Small, then Dolphin - except where Dolphin small was
-# measured to be as accurate or better, and much faster (see ENGINE_LANGS).
+# wherever it can (fastest), then Whisper-Small, then Dolphin - except where another engine was
+# measured to be better (see ENGINE_LANGS): Dolphin small for the South-East Asian languages,
+# Omnilingual for Hindi and Arabic.
 DEFAULT_FALLBACK = ("sensevoice", "whisper", "dolphin")
-FALLBACK_ORDER = {lang: ("dolphin", "whisper") for lang in ("id", "vi", "th", "ms", "fil")}
+FALLBACK_ORDER = {
+    **{lang: ("dolphin", "whisper") for lang in ("id", "vi", "th", "ms", "fil")},
+    **{lang: ("omnilingual", "dolphin", "whisper") for lang in ("hi", "ar")},
+}
 
 
 def pick_engine(engine, source_lang):
@@ -144,7 +154,11 @@ class Asr:
         if key in self._recognizers:
             return self._recognizers[key]
         t0 = time.perf_counter()
-        if engine == "dolphin":
+        if engine == "omnilingual":
+            rec = sherpa_onnx.OfflineRecognizer.from_omnilingual_asr_ctc(
+                model=str(OMNI_DIR / "model.int8.onnx"), tokens=str(OMNI_DIR / "tokens.txt"),
+                num_threads=self.threads, provider="cpu")
+        elif engine == "dolphin":
             rec = sherpa_onnx.OfflineRecognizer.from_dolphin_ctc(
                 model=str(DOLPHIN_DIR / "model.int8.onnx"), tokens=str(DOLPHIN_DIR / "tokens.txt"),
                 num_threads=self.threads, provider="cpu")
@@ -164,8 +178,8 @@ class Asr:
 
     @staticmethod
     def engine_language(engine, source_lang):
-        if engine == "dolphin":
-            return ""  # detects the language itself
+        if engine in ("dolphin", "omnilingual"):
+            return ""  # detect the language themselves
         if engine == "whisper":
             return "" if source_lang == "auto" else WHISPER_CODES.get(source_lang, source_lang)
         return SENSE_VOICE_LANGS.get(source_lang, "auto")

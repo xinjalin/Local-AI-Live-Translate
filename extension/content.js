@@ -138,6 +138,7 @@ function initSubtitleOverlay() {
 
     .lalt-speaker {
       font-weight: 700;
+      unicode-bidi: isolate; /* keeps "Person 1:" intact inside a right-to-left line */
     }
   `;
 
@@ -275,6 +276,7 @@ function renderHistorySubtitles() {
       const el = document.createElement('div');
       el.className = className;
       el.textContent = text;
+      el.dir = lcTextDirection(text); // Arabic lines right to left
       lineWrapper.appendChild(el);
       return el;
     };
@@ -285,6 +287,7 @@ function renderHistorySubtitles() {
         const label = document.createElement('span');
         label.className = 'lalt-speaker';
         label.textContent = lcTranslate(uiLang, 'speakerLabel', { n: item.speaker });
+        label.dir = lcTextDirection(label.textContent);
         label.style.color = lcSpeakerColor(item.speaker, settings);
         el.prepend(label, ' ');
       }

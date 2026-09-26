@@ -12,6 +12,7 @@ components. Each remains under its own license; the full license texts ship alon
 | SenseVoice Small, int8 ONNX export (`sherpa-onnx-sense-voice-…`) | <https://github.com/FunAudioLLM/SenseVoice>, export by <https://github.com/k2-fsa/sherpa-onnx> | FunASR model license — see the `LICENSE` file in that folder |
 | Whisper Small, int8 ONNX export (`sherpa-onnx-whisper-small`) | <https://github.com/openai/whisper>, export by <https://github.com/k2-fsa/sherpa-onnx> | MIT |
 | Dolphin small CTC, int8 ONNX export (`sherpa-onnx-dolphin-small-ctc-multi-lang-int8-2025-04-02`) | <https://github.com/DataoceanAI/Dolphin>, export by <https://github.com/k2-fsa/sherpa-onnx> | Apache-2.0 |
+| Omnilingual ASR 300M CTC v2, int8 ONNX export (`sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-v2-int8-2026-02-05`) | <https://github.com/facebookresearch/omnilingual-asr> (Meta), export by <https://github.com/k2-fsa/sherpa-onnx> | Apache-2.0 |
 | 3D-Speaker CAM++ zh/en speaker embedding, ONNX export (`speaker/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx`) | <https://github.com/modelscope/3D-Speaker>, export by <https://github.com/k2-fsa/sherpa-onnx> | Apache-2.0 |
 
 ## Python runtime and packages (`runtime/`)

@@ -126,6 +126,15 @@ function lcSubtitleLook(settings) {
   };
 }
 
+// Direction of a subtitle line, from its first letter: Arabic script (and Hebrew) reads right to left.
+// Set per line rather than with dir="auto", which would follow a "Person 1:" label in front of it.
+const LC_RTL_LETTER = /[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/;
+
+function lcTextDirection(text) {
+  const first = String(text || '').match(/\p{L}/u);
+  return first && LC_RTL_LETTER.test(first[0]) ? 'rtl' : 'ltr';
+}
+
 // Speaker labels (Person 1, 2, ...): one colour per person, repeating after eight. Bright colours
 // on dark or see-through boxes (over the video), deeper ones on light boxes.
 const LC_SPEAKER_COLORS = {
