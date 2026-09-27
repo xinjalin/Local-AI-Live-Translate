@@ -249,3 +249,7 @@ syntax, translation and secret-scan checks. See [DEVELOPMENT.md](DEVELOPMENT.md)
 Local AI Live Translate is by **xinjalin** and open source under the [MIT License](LICENSE). It builds
 on open-source components: the speech models, Python and the Python packages it downloads keep their
 own licenses — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+It started from [LiveCaption](https://github.com/begin0808/LiveCaption) by begin0808 (Studio0808),
+whose design inspired this one and parts of whose extension code it still contains (MIT License,
+per its README). Thank you!
