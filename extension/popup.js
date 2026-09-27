@@ -118,6 +118,7 @@ function buildLanguageSelect(select, lang) {
   }
 
   for (const code of select.id === 'ui-lang' ? LC_UI_LANGS : LC_LANG_CODES) {
+    if (select.id === 'target-lang' && LC_SOURCE_ONLY_LANGS.includes(code)) continue;
     let label = lcLanguageName(code, lang);
     if (select.id === 'ui-lang') {
       // UI language picker: show each language in its own script so it's
@@ -440,24 +441,32 @@ async function checkSpeakerSupport() {
 
 // Video languages each speech engine can recognise (null: all of them). Mirrors ENGINE_LANGS and
 // pick_engine() in the server, which switches engines the same way.
+// langs: the languages an engine can recognise (null: any, except `excludes`).
 const ASR_ENGINES = {
-  sensevoice: { name: 'SenseVoice', langs: ['zh-TW', 'zh-CN', 'en', 'ja', 'ko'] },
-  whisper: { name: 'Whisper-Small', langs: null },
-  dolphin: { name: 'Dolphin', langs: ['zh-TW', 'zh-CN', 'ja', 'ko', 'ru', 'id', 'vi', 'th', 'ms', 'fil', 'hi', 'ar'] },
+  sensevoice: { name: 'SenseVoice', langs: ['zh-TW', 'zh-CN', 'en', 'ja', 'ko', 'yue'] },
+  whisper: { name: 'Whisper-Small', langs: null, excludes: ['yue'] },
+  dolphin: { name: 'Dolphin', langs: ['zh-TW', 'zh-CN', 'ja', 'ko', 'yue', 'ru', 'id', 'vi', 'th', 'ms', 'fil', 'hi', 'ar', 'bn'] },
   omnilingual: { name: 'Omnilingual', langs: null }
 };
 
 function asrSupports(engine, lang) {
-  const langs = ASR_ENGINES[engine].langs;
-  return lang === 'auto' || !langs || langs.includes(lang);
+  const { langs, excludes = [] } = ASR_ENGINES[engine];
+  return lang === 'auto' || ((!langs || langs.includes(lang)) && !excludes.includes(lang));
 }
 
 // Where another engine was measured to be the better stand-in (FALLBACK_ORDER in the server):
-// Dolphin small for the South-East Asian languages, Omnilingual for Hindi and Arabic.
+// Dolphin small for the South-East Asian languages; Omnilingual for Hindi, Arabic, Bengali and the
+// European languages (close to Whisper-Small there, and much faster).
 const ASR_FALLBACK_ORDER = {
   ...Object.fromEntries(['id', 'vi', 'th', 'ms', 'fil'].map(l => [l, ['dolphin', 'whisper']])),
-  ...Object.fromEntries(['hi', 'ar'].map(l => [l, ['omnilingual', 'dolphin', 'whisper']]))
+  ...Object.fromEntries(['hi', 'ar'].map(l => [l, ['omnilingual', 'dolphin', 'whisper']])),
+  ...Object.fromEntries(['pt', 'it', 'tr', 'pl', 'uk', 'nl'].map(l => [l, ['omnilingual', 'whisper']])),
+  bn: ['omnilingual', 'dolphin'],
+  yue: ['sensevoice', 'dolphin']
 };
+// Where Whisper-Small is unusable, so Omnilingual is much more accurate as well as faster
+// (FLEURS word errors: Hindi 79%, Bengali 100%; Arabic 25.5% against 15.8%).
+const WHISPER_POOR = ['hi', 'ar', 'bn'];
 
 function engineInUse(engine, lang) {
   if (asrSupports(engine, lang)) return engine;
@@ -487,10 +496,12 @@ function updateAsrNote() {
   }
   const best = bestEngine(lang);
   if (used === 'whisper' && lang !== 'auto' && !asrSupports('sensevoice', lang)) {
-    // (Whisper-Small isn't accurate where Omnilingual is the pick: 79% word errors for Hindi)
-    if (best !== 'omnilingual') parts.push(t('asrWhisperSlow'));
-    if (best === 'dolphin') parts.push(t('asrTryDolphin'));
-    if (best === 'omnilingual') parts.push(t('asrTryOmnilingual'));
+    if (WHISPER_POOR.includes(lang)) {
+      parts.push(t('asrTryOmnilingual'));
+    } else {
+      parts.push(t('asrWhisperSlow'));
+      if (best === 'dolphin') parts.push(t('asrTryDolphin'));
+    }
   }
   // Dolphin or Omnilingual picked for a language another engine handles better
   // (e.g. Japanese -> SenseVoice, Hindi -> Omnilingual)

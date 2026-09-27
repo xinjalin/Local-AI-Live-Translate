@@ -199,21 +199,28 @@ button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied 
   comes from (LM Studio catalog or Hugging Face repo) — keep the app server running while exporting so
   it can look this up for models added from Hugging Face.
 - **Languages:** the video and subtitle languages can each be Traditional or Simplified Chinese,
-  English, Japanese, Korean, Spanish, French, German, Russian, Indonesian, Vietnamese, Thai, Malay,
-  Filipino, Hindi or Arabic. The popup itself is available in the first ten. Arabic subtitles are
-  laid out right to left.
+  English, Japanese, Korean, Spanish, Portuguese, French, Italian, German, Dutch, Russian, Ukrainian,
+  Polish, Turkish, Indonesian, Vietnamese, Thai, Malay, Filipino, Hindi, Bengali or Arabic, and the
+  video can also be in **Cantonese**. The popup itself is available in Chinese (both), English,
+  Japanese, Korean, Spanish, French, German, Russian and Indonesian. Arabic subtitles are laid out
+  right to left.
+  - *Cantonese* is shown in Traditional characters and translated into standard written Chinese for
+    Chinese subtitles (呢幾個字都表達唔到 → 這幾個字都表達不了), not just converted character by
+    character. It isn't offered as a subtitle language: the translation model writes formal Chinese
+    rather than colloquial Cantonese.
 - **Speech engine** (Live tab):
 
   | Engine | Recognises | Speed (per line) | Notes |
   |---|---|---|---|
   | SenseVoice | Chinese, Cantonese, English, Japanese, Korean | ~0.1 s | The default; best for these |
   | Dolphin (small) | 40 Asian languages (Indonesian, Vietnamese, Thai, Malay, Filipino, Hindi, …) | ~0.2–0.7 s | Used automatically for Indonesian, Vietnamese, Thai, Malay and Filipino |
-  | Omnilingual (Meta, 300M) | 1,600+ languages | ~0.3–0.8 s | Used automatically for Hindi and Arabic |
+  | Omnilingual (Meta, 300M) | 1,600+ languages | ~0.3–0.8 s | Used automatically for Hindi, Bengali, Arabic, Portuguese, Italian, Dutch, Ukrainian, Polish and Turkish |
   | Whisper-Small | 99 languages | ~1.5–4 s | Covers everything else (Spanish, French, German, Russian, …) |
 
   If the chosen engine can't recognise the video language, the server switches to the best one that
   can, and the popup says so: SenseVoice where possible, Dolphin for the five South-East Asian
-  languages, Omnilingual for Hindi and Arabic (Dolphin as their fallback), otherwise Whisper-Small.
+  languages, Omnilingual for Hindi, Bengali and Arabic (Dolphin as their fallback) and for the newer
+  European languages and Turkish (Whisper-Small as theirs), otherwise Whisper-Small.
   Measured on Google FLEURS recordings (errors, Dolphin small vs Whisper-Small):
 
   | Language | Dolphin small | Whisper-Small |
@@ -228,6 +235,26 @@ button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied 
   Whisper-Small 79 % (unusable for Hindi) / 25.5 %. Hy-MT2-7B translates both well (chrF into
   English 65 / 66, ahead of Gemma-4-12B and Qwen3.5-9B). The Arabic test is Modern Standard Arabic;
   dialects (Egyptian, Gulf, …) are untested.
+
+  The newer languages, measured the same way (10 FLEURS recordings each; word / character errors),
+  and how much of the translation survives recognition errors (chrF into English with Hy-MT2-7B,
+  from the recognised speech against a perfect transcript):
+
+  | Language | Engine | Errors | Into English (from speech / perfect transcript) |
+  |---|---|---|---|
+  | Cantonese | SenseVoice | 4.7 % CER (Dolphin 12.0 %) | 56 / 55 |
+  | Portuguese | Omnilingual | 14.3 % / 4.0 % | 65 / 71 |
+  | Italian | Omnilingual | 13.4 % / 1.7 % | 56 / 62 |
+  | Dutch | Omnilingual | 22.7 % / 7.1 % | 55 / 66 |
+  | Ukrainian | Omnilingual | 25.7 % / 4.6 % | 55 / 60 |
+  | Polish | Omnilingual | 24.9 % / 4.1 % | 52 / 54 |
+  | Turkish | Omnilingual | 22.2 % / 4.0 % | 62 / 67 |
+  | Bengali | Omnilingual | 15.5 % / 7.2 % (Dolphin 32 %, Whisper 100 %) | 54 / 57 |
+
+  Omnilingual writes no punctuation or capitals in the original-language line (the translation is
+  unaffected). Whisper-Small is a little more accurate for Italian and Dutch (61 / 62 into English)
+  but adds 1–2 s per line; pick it on the Live tab if accuracy matters more than delay there. Urdu
+  isn't offered yet: no engine recognises it well in Urdu script.
 
   Dolphin is also ~9× faster: a full subtitle into English took 1.1–1.8 s, against 2.8–5.3 s with
   Whisper-Small. Set the video language rather than *Auto Detect* for languages SenseVoice doesn't

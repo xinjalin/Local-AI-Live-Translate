@@ -71,7 +71,8 @@ function sanitizeProfileBase(raw) {
     ollamaModel: str(raw.ollamaModel, 200),
     contextSize: [4096, 8192, 16384].includes(Number(raw.contextSize)) ? Number(raw.contextSize) : 4096,
     sourceLang: raw.sourceLang === 'auto' || LC_LANG_CODES.includes(raw.sourceLang) ? raw.sourceLang : 'auto',
-    targetLang: raw.targetLang === 'none' || LC_LANG_CODES.includes(raw.targetLang) ? raw.targetLang : 'none',
+    targetLang: raw.targetLang === 'none' ||
+      (LC_LANG_CODES.includes(raw.targetLang) && !LC_SOURCE_ONLY_LANGS.includes(raw.targetLang)) ? raw.targetLang : 'none',
     asrEngine: ['whisper', 'dolphin', 'omnilingual'].includes(raw.asrEngine) ? raw.asrEngine : 'sensevoice',
     showBilingual: raw.showBilingual !== false
   };
