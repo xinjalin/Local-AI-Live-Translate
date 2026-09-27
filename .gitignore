@@ -11,8 +11,13 @@ __pycache__/
 # Build output (published on the GitHub Releases page instead)
 /dist/
 
-# Personal data: saved subtitle transcripts
+# Personal data: saved subtitle transcripts, and your own prompt templates
 /transcripts/
+/templates/*.json
+!/templates/_example.json
+!/templates/generic.json
+!/templates/hy-mt.json
+!/templates/milmmt.json
 
 # Secrets and local settings - never commit these
 .env

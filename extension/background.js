@@ -187,7 +187,7 @@ async function startCapture(streamId, tabId) {
     await chrome.storage.local.set({ isCapturing: true, activeTabId: tabId });
     
     // 3. Load config from storage
-    const storage = await chrome.storage.local.get(['llmProvider', 'lmstudioUrl', 'ollamaUrl', 'modelName', 'deepseekKey', 'minSilence', 'maxSpeech', 'vadThreshold', 'showBilingual', 'sourceLang', 'targetLang', 'asrEngine', 'saveTranscripts', 'detectSpeakers', 'speakerThreshold', 'qwencloudUrl', 'qwencloudKey']);
+    const storage = await chrome.storage.local.get(['llmProvider', 'lmstudioUrl', 'ollamaUrl', 'modelName', 'deepseekKey', 'minSilence', 'maxSpeech', 'vadThreshold', 'showBilingual', 'sourceLang', 'targetLang', 'asrEngine', 'saveTranscripts', 'detectSpeakers', 'speakerThreshold', 'qwencloudUrl', 'qwencloudKey', 'promptTemplate']);
     const config = {
       llmProvider: storage.llmProvider || 'lmstudio',
       lmstudioUrl: storage.lmstudioUrl || 'http://127.0.0.1:1234',
@@ -204,7 +204,8 @@ async function startCapture(streamId, tabId) {
       asrEngine: storage.asrEngine || 'sensevoice',
       saveTranscripts: storage.saveTranscripts === true,
       detectSpeakers: storage.detectSpeakers === true,
-      speakerThreshold: storage.speakerThreshold !== undefined ? storage.speakerThreshold : 0.5
+      speakerThreshold: storage.speakerThreshold !== undefined ? storage.speakerThreshold : 0.5,
+      promptTemplate: storage.promptTemplate || 'auto'
     };
     const showBilingual = storage.showBilingual !== false;
     setCaptureMode(config.targetLang, showBilingual);

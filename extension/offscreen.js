@@ -194,7 +194,8 @@ function backendConfig() {
     asr_engine: config.asrEngine,
     save_transcript: config.saveTranscripts === true,
     detect_speakers: config.detectSpeakers === true,
-    speaker_threshold: config.speakerThreshold !== undefined ? config.speakerThreshold : 0.5
+    speaker_threshold: config.speakerThreshold !== undefined ? config.speakerThreshold : 0.5,
+    prompt_template: config.promptTemplate || 'auto'
   };
 }
 

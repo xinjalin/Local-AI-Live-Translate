@@ -1423,6 +1423,41 @@ select.lang-native {
   color: #ffffff;
 }
 
+/* Armed delete: pulses until pressed again or it times out (the message under the menu says so) */
+.icon-btn.confirm {
+  animation: confirm-pulse 1s ease-in-out infinite;
+}
+
+@keyframes confirm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 55%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--danger) 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn.confirm {
+    animation: none;
+  }
+}
+
+/* The time left to confirm a delete: a thin line in the message's colour, shrinking towards the
+   left and gone when the time is up (the duration comes from DELETE_CONFIRM_MS in popup.js). */
+.config-status.countdown::after {
+  content: "";
+  display: block;
+  height: 2px;
+  margin-top: 4px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.8;
+  transform-origin: left center;
+  animation: countdown var(--countdown, 4s) linear forwards;
+}
+
+@keyframes countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
 .icon-btn.spinning,
 .icon-btn:disabled {
   opacity: 0.5;

@@ -1,0 +1,11 @@
+{
+  "name": "MiLMMT (Xiaomi)",
+  "description": "Xiaomi MiLMMT's own format: 'Translate this from X to Y'.",
+  "match": [
+    "milmmt"
+  ],
+  "user": "Translate this from {source} to {target}:\n{source}: {text}\n{target}:",
+  "sampling": {
+    "temperature": 0.0
+  }
+}

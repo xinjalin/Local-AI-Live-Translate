@@ -46,6 +46,11 @@ function sanitizeProfile(raw) {
     profile.qwencloudUrl = url;
   }
   if (raw.qwencloudModel !== undefined) profile.qwencloudModel = str(raw.qwencloudModel, 120).replace(/[^\w.\-:/]/g, '');
+  // Prompt template id (a template file missing on this PC falls back to Auto)
+  if (raw.promptTemplate !== undefined) {
+    const id = str(raw.promptTemplate, 64).toLowerCase();
+    profile.promptTemplate = /^(auto|[a-z0-9][a-z0-9._-]{0,63})$/.test(id) ? id : 'auto';
+  }
   optional('speakerThreshold', 0.3, 0.7);
   optional('vadThreshold', 0.2, 0.8);
   optional('minSilence', 0.2, 1.2);

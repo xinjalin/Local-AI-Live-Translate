@@ -1,0 +1,17 @@
+{
+  "name": "Hy-MT (Tencent)",
+  "description": "Tencent's official Hy-MT / Hunyuan-MT templates and sampling.",
+  "match": [
+    "hy-mt",
+    "hymt",
+    "hunyuan-mt"
+  ],
+  "user": "Translate the following text into {target}. Note that you should only output the translated result without any additional explanation:\n\n{text}",
+  "user_with_context": "[Background Information]\n{context}\n\nPlease translate the following text into {target}, taking the provided background information into consideration. Only output the translated result.\n\n[Source Text]\n{text}",
+  "sampling": {
+    "temperature": 0.7,
+    "top_p": 0.6,
+    "top_k": 20,
+    "repeat_penalty": 1.05
+  }
+}

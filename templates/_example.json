@@ -1,0 +1,9 @@
+{
+  "name": "Formal subtitles (example)",
+  "description": "Copy this file to a name without the leading _ to use it",
+  "match": [],
+  "system": "You are a professional subtitle translator. Translate each subtitle line the user sends into formal, polite {target}. The lines come from speech recognition and may contain misheard words; use the earlier lines to infer the meaning. Output only the {target} translation of the latest line, as a single line.{target_rules}",
+  "user": "{text}",
+  "history": true,
+  "sampling": { "temperature": 0.2 }
+}

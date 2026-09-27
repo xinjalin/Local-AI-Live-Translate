@@ -27,6 +27,7 @@ const asrEngineInput = document.getElementById('asr-engine');
 const loadModelBtn = document.getElementById('load-model');
 const modelLoadStateEl = document.getElementById('model-load-state');
 const contextSizeInput = document.getElementById('context-size');
+const promptTemplateInput = document.getElementById('prompt-template');
 const pinSubtitlesInput = document.getElementById('pin-subtitles');
 const themeInput = document.getElementById('theme');
 const saveTranscriptsInput = document.getElementById('save-transcripts');
@@ -53,7 +54,8 @@ const DEFAULTS = {
   qwencloudModel: 'qwen3.8-livetranslate-flash-realtime',
   uiLang: 'en',
   theme: 'dark',
-  contextSize: 4096
+  contextSize: 4096,
+  promptTemplate: 'auto'
 };
 
 let isCapturing = false;
@@ -412,6 +414,7 @@ function applyLanguage(lang) {
     el.placeholder = lcTranslate(lang, el.dataset.i18nPlaceholder);
   });
   document.querySelectorAll('select.lang-select').forEach(sel => buildLanguageSelect(sel, lang));
+  buildTemplateSelect();
 
   renderModelStatus();
   renderLoadState();
@@ -431,6 +434,7 @@ function applyLanguage(lang) {
 // ---------------------------------------------------------------------------
 
 function updateHero() {
+  updateTemplateHint();
   const lang = uiLangInput.value;
   const source = sourceLangInput.value;
   const target = targetLangInput.value;
@@ -864,6 +868,77 @@ function isLiveTranslate(model) {
   return /livetranslate/i.test(model || '') && /realtime/i.test(model || '');
 }
 
+// ---------------------------------------------------------------------------
+// Prompt templates: how each line is put to the model (server/prompt_templates.py). Built-in ones
+// plus the user's from the app's templates/ folder, listed by the app server. "auto" picks by the
+// model's name, e.g. MiLMMT's own format for MiLMMT models.
+// ---------------------------------------------------------------------------
+
+const BUILTIN_TEMPLATES = [
+  { id: 'generic', builtin: true, match: [] },
+  { id: 'hy-mt', builtin: true, match: ['hy-mt', 'hymt', 'hunyuan-mt'] },
+  { id: 'milmmt', builtin: true, match: ['milmmt'] }
+];
+const TEMPLATE_NAME_KEYS = { generic: 'tplGeneric', 'hy-mt': 'tplHyMt', milmmt: 'tplMilmmt' };
+let promptTemplates = BUILTIN_TEMPLATES;
+
+function templateName(tpl) {
+  return TEMPLATE_NAME_KEYS[tpl.id] && tpl.builtin ? t(TEMPLATE_NAME_KEYS[tpl.id]) : tpl.name || tpl.id;
+}
+
+// What "auto" uses for `model`: the user's templates first, then the built-in ones (as the server does).
+function autoTemplate(model) {
+  const name = (model || '').toLowerCase();
+  const order = [...promptTemplates.filter(x => !x.builtin), ...promptTemplates.filter(x => x.builtin && x.id !== 'generic')];
+  return order.find(x => (x.match || []).some(word => name.includes(word.toLowerCase())))
+    || promptTemplates.find(x => x.id === 'generic') || BUILTIN_TEMPLATES[0];
+}
+
+function buildTemplateSelect() {
+  const current = promptTemplateInput.value || 'auto';
+  promptTemplateInput.innerHTML = '';
+  promptTemplateInput.add(new Option(t('optTemplateAuto'), 'auto'));
+  for (const tpl of promptTemplates) promptTemplateInput.add(new Option(templateName(tpl), tpl.id));
+  setTemplateValue(current);
+}
+
+// A template from an imported profile that isn't in this PC's templates folder stays selected
+// (the server uses Auto instead) and is marked as missing.
+function setTemplateValue(id) {
+  if (id !== 'auto' && ![...promptTemplateInput.options].some(o => o.value === id)) {
+    promptTemplateInput.add(new Option(t('optTemplateMissing', { name: id }), id));
+  }
+  promptTemplateInput.value = id;
+  updateTemplateHint();
+}
+
+function updateTemplateHint() {
+  const hint = document.getElementById('template-hint');
+  const id = promptTemplateInput.value;
+  const chosen = promptTemplates.find(x => x.id === id);
+  const parts = [];
+  if (id === 'auto') {
+    const model = currentModel();
+    if (model) parts.push(t('templateAutoUses', { name: templateName(autoTemplate(model)) }));
+  } else if (!chosen) {
+    parts.push(t('templateMissingNote'));
+  } else if (!chosen.builtin && chosen.description) {
+    parts.push(chosen.description);
+  }
+  parts.push(t('hintTemplateFolder'));
+  hint.textContent = parts.join(' ');
+}
+
+async function refreshTemplates() {
+  try {
+    const res = await lcFetchJson(`${LC_SERVER_URL}/templates`, {}, 2000);
+    if (Array.isArray(res.templates) && res.templates.length) promptTemplates = res.templates;
+  } catch (e) {
+    // App server not running: the built-in templates are listed
+  }
+  buildTemplateSelect();
+}
+
 // The model in use for the chosen provider.
 function currentModel() {
   return llmProviderInput.value === 'qwencloud' ? qwenModelInput.value.trim() : modelNameInput.value;
@@ -1105,7 +1180,7 @@ function showProviderFields() {
     'qwencloudUrl', 'qwencloudKey', 'qwencloudModel',
     'deepseekKey', 'minSilence', 'maxSpeech', 'vadThreshold', 'detectSpeakers', 'speakerThreshold',
     'uiLang', 'sourceLang', 'targetLang', 'showBilingual', 'asrEngine',
-    'contextSize', 'theme', 'lmModelState', 'saveTranscripts',
+    'contextSize', 'promptTemplate', 'theme', 'lmModelState', 'saveTranscripts',
     'profiles', 'activeProfile', 'displayConfigs', 'activeDisplayConfig', 'pendingModel', 'lmDownload',
     ...Object.keys(LC_SUBTITLE_DEFAULTS)
   ]);
@@ -1117,6 +1192,7 @@ function showProviderFields() {
   themeInput.value = result.theme || DEFAULTS.theme;
   applyTheme(themeInput.value);
   contextSizeInput.value = String(result.contextSize || DEFAULTS.contextSize);
+  setTemplateValue(result.promptTemplate || DEFAULTS.promptTemplate);
   pinSubtitlesInput.checked = look.pinSubtitles === true;
   saveTranscriptsInput.checked = result.saveTranscripts === true; // off unless turned on
   modelState = result.lmModelState || null;
@@ -1165,6 +1241,7 @@ function showProviderFields() {
   profileConfigs.load(result);
   displayConfigs.load(result);
   applyLanguage(uiLangInput.value);
+  refreshTemplates();
   await refreshModels();
   resumeModelDownload();
 })();
@@ -1198,6 +1275,7 @@ const saveSettings = () => {
     showBilingual: showBilingualInput.checked,
     asrEngine: asrEngineInput.value,
     contextSize: parseInt(contextSizeInput.value),
+    promptTemplate: promptTemplateInput.value,
     saveTranscripts: saveTranscriptsInput.checked,
     theme: themeInput.value,
     // Subtitle look (the overlay picks these up from storage by itself)
@@ -1264,6 +1342,11 @@ qwenModelInput.addEventListener('input', () => {
   updateQwenMode();
 });
 document.getElementById('refresh-qwen').addEventListener('click', refreshQwenModels);
+promptTemplateInput.addEventListener('change', () => {
+  saveSettings();
+  updateTemplateHint();
+});
+promptTemplateInput.addEventListener('focus', refreshTemplates); // (new files in the templates folder)
 modelNameInput.addEventListener('change', () => {
   if (pendingModel) setPendingModel(null);
   saveSettings();
@@ -1831,6 +1914,7 @@ function captureProfile() {
     qwencloudUrl: qwenUrlInput.value.trim(),
     qwencloudModel: models.qwencloud || '',
     contextSize: parseInt(contextSizeInput.value),
+    promptTemplate: promptTemplateInput.value,
     sourceLang: sourceLangInput.value,
     targetLang: targetLangInput.value,
     asrEngine: asrEngineInput.value,
@@ -1857,6 +1941,8 @@ async function applyProfile(p, config) {
   qwenModelInput.value = providerModels.qwencloud;
   updateQwenMode();
   contextSizeInput.value = String(p.contextSize || DEFAULTS.contextSize);
+  // (not in profiles saved before prompt templates existed: those use Auto)
+  setTemplateValue(p.promptTemplate || 'auto');
   sourceLangInput.value = p.sourceLang || 'auto';
   targetLangInput.value = p.targetLang || 'none';
   asrEngineInput.value = p.asrEngine || 'sensevoice';
@@ -1905,6 +1991,9 @@ function sameSettings(a, b) {
   const norm = (o) => JSON.stringify(Object.keys(o).sort().map(k => [k, o[k] === null ? null : String(o[k])]));
   return norm(a) === norm(b);
 }
+
+// How long a first press of a config's delete button waits for the second one.
+const DELETE_CONFIRM_MS = 4000;
 
 class ConfigManager {
   constructor({ prefix, listKey, activeKey, nameKey, capture, apply, onChange, warning, exportItems }) {
@@ -1993,7 +2082,8 @@ class ConfigManager {
       cls = 'error';
     }
     this.status.textContent = text;
-    this.status.className = 'hint config-status' + (cls ? ' ' + cls : '');
+    this.status.className = 'hint config-status' + (cls ? ' ' + cls : '') +
+      (this.message && this.message.countdown ? ' countdown' : '');
     this.status.hidden = !text;
   }
 
@@ -2079,6 +2169,7 @@ class ConfigManager {
   }
 
   // Two clicks: the first arms the button (red), the second deletes.
+  // The message under the menu counts down the time left to confirm (a shrinking line).
   remove() {
     const config = this.active();
     if (!config) return;
@@ -2086,7 +2177,12 @@ class ConfigManager {
       this.deleteArmed = true;
       this.deleteBtn.classList.add('confirm');
       this.deleteBtn.title = t('btnConfirmDelete');
-      this.deleteTimer = setTimeout(() => this.cancelDelete(), 3000);
+      // Said in words under the menu too, not only by the button turning red
+      clearTimeout(this.flashTimer);
+      this.message = { key: 'configConfirmDelete', vars: { name: config.name }, cls: 'error', countdown: true };
+      this.status.style.setProperty('--countdown', `${DELETE_CONFIRM_MS}ms`);
+      this.refresh();
+      this.deleteTimer = setTimeout(() => this.cancelDelete(), DELETE_CONFIRM_MS);
       return;
     }
     this.cancelDelete();
@@ -2102,6 +2198,10 @@ class ConfigManager {
     this.deleteArmed = false;
     this.deleteBtn.classList.remove('confirm');
     this.deleteBtn.title = t('btnDeleteConfig');
+    if (this.message && this.message.key === 'configConfirmDelete') {
+      this.message = null;
+      this.refresh();
+    }
   }
 }
 

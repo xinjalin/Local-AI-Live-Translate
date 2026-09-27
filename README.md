@@ -98,7 +98,8 @@ button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied 
 |---|---|
 | `START_Local_AI_Live_Translate.bat` | Starts the server |
 | `extension/` | The Chrome extension (load it unpacked) |
-| `server/` | Server source: `live_translate_server.py`, `translator.py`, `qwen_live.py`, `requirements.txt` |
+| `server/` | Server source: `live_translate_server.py`, `translator.py`, `prompt_templates.py`, `qwen_live.py`, `requirements.txt` |
+| `templates/` | Your own prompt templates (JSON); see [templates/README.md](templates/README.md) |
 | `tools/` | `setup.ps1` (first-run downloads, pinned in `dependencies.json`), `build_package.py` (release bundle), `check_i18n.js` |
 | `models/` | Speech models: Silero VAD, SenseVoice (zh/en/ja/ko/yue), Whisper-Small, Dolphin small (Asian languages), Omnilingual 300M (Hindi, Arabic, …), and the CAM++ speaker model in `models/speaker/` |
 | `runtime/` | Private Python 3.14 with all packages installed (in releases; downloaded on first run from source) |
@@ -131,8 +132,8 @@ Turkish); differences of a point or two are within noise.
 |---|---|---|---|---|---|---|
 | **Hy-MT2-7B Q8_0** | 8.0 GB | **67.8** | 51.2 | **0.49 s** / 0.71 s | 65 tok/s | **recommended**: best balance of accuracy and speed |
 | Hy-MT2-30B-A3B i1-IQ3_M | 13.3 GB | 67.7 | **52.0** | 0.94 s / 1.14 s | 53 tok/s | no more accurate than the 7B, twice as slow |
-| MiLMMT-46-12B Q6_K | 9.7 GB | 67.3 | 48.9 | 0.84 s / 1.08 s | 37 tok/s | ⚠ needs its own prompt format, which the app doesn't use yet |
-| MiLMMT-46-4B Q8_0 | 4.1 GB | 65.3 | 47.0 | 0.36 s / 0.46 s | 93 tok/s | ⚠ same; fastest, 2–3 points less accurate |
+| MiLMMT-46-12B Q6_K | 9.7 GB | 67.3 | 48.9 | 0.84 s / 1.08 s | 37 tok/s | uses its own prompt template automatically |
+| MiLMMT-46-4B Q8_0 | 4.1 GB | 65.3 | 47.0 | 0.36 s / 0.46 s | 93 tok/s | fastest, 2–3 points less accurate; own prompt template |
 | Gemma-4-12B Q8_0 | 12.7 GB | 65.3 | 50.2 | 1.82 s / 2.33 s | 16 tok/s | doesn't fit fully in 16 GB of VRAM |
 | Qwen3.5-9B Q8_0 | 9.5 GB | 61.9 | 46.6 | 0.86 s / 1.13 s | 33 tok/s | thinking is switched off automatically |
 | Qwen2.5-7B-Instruct Q8_0 | 8.1 GB | – | – | ~0.40 s | 43 tok/s | older test: more literal mistakes |
@@ -140,8 +141,12 @@ Turkish); differences of a point or two are within noise.
 
 - MiLMMT (Xiaomi, Gemma licence) and Hy-MT2-30B-A3B write real colloquial Cantonese when asked;
   Hy-MT2-7B writes formal written Chinese, which is why Cantonese is a video language only.
-- Hy-MT2 (`tencent/Hy-MT2-7B-GGUF` in LM Studio's Discover tab) gets its official prompt template
-  and sampling settings automatically.
+- **Prompt templates** (Model tab): Hy-MT2 (`tencent/Hy-MT2-7B-GGUF` in LM Studio's Discover tab)
+  and MiLMMT get their own prompt format and sampling settings automatically (**Auto** matches the
+  model's name); every other model gets general subtitle-translator instructions. You can pick a
+  template by hand, add your own as JSON files in the `templates/` folder
+  ([format](templates/README.md)), and save the choice in a profile. Chinese subtitles are always
+  converted to the chosen script (Traditional or Simplified), whatever the model writes.
 - Hybrid "thinking" models are asked not to reason (`reasoning_effort: none`), so they answer
   immediately.
 - On AMD GPUs keep LM Studio's **Vulkan** runtime; set GPU offload to max and flash attention on.
