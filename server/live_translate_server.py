@@ -44,7 +44,7 @@ from websockets.exceptions import ConnectionClosed
 from qwen_live import QwenLiveTranslate, is_livetranslate
 from translator import LlmConfig, Translator
 
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 SAMPLE_RATE = 16000
 VAD_WINDOW = 512  # samples per Silero VAD step at 16 kHz
 HISTORY_SECONDS = 20  # recent audio kept for pre-roll (must exceed max speech + silence)
