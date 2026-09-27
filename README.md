@@ -8,9 +8,9 @@ Real-time translated subtitles for any video or stream playing in Chrome: speech
 translation both run on your own PC, using a local LLM served by LM Studio (or Ollama, or optionally
 Qwen Cloud).
 
-**Author:** xinjalin
-**Co-Author:** Claude Opus 5.5
-**License:** MIT (open source) · Windows 10/11 (x64)
+**Author:** xinjalin <br>
+**Co-Author:** Claude Opus 5.5 <br>
+**License:** MIT (open source) · Windows 10/11 (x64) <br>
 
 ```
 Chrome extension ──audio──> Local AI Live Translate server ──> LM Studio (local LLM)
