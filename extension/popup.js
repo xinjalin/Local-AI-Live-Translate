@@ -132,6 +132,271 @@ function buildLanguageSelect(select, lang) {
   if (current) select.value = current;
 }
 
+// ---------------------------------------------------------------------------
+// Language pickers: the video and subtitle language menus, with a search box pinned at the top of
+// the list (the same matching as the settings search, also on each language's English and native
+// name), sorted A–Z in the UI language. The hidden <select> stays the source of truth: the rest of
+// the popup reads and sets its value and listens for its changes.
+// ---------------------------------------------------------------------------
+
+// Other names people search for that the browser's language names don't cover (like data-search
+// on the settings).
+const LANG_SEARCH_ALIASES = {
+  'zh-TW': 'Mandarin 中文 繁體 繁体 國語 Taiwan',
+  'zh-CN': 'Mandarin 中文 简体 簡體 普通话',
+  yue: 'Cantonese 粵語 粤语 廣東話 广东话 Hong Kong',
+  bn: 'Bengali Bangla বাংলা',
+  fil: 'Tagalog Pilipino',
+  ms: 'Bahasa Melayu',
+  id: 'Bahasa Indonesia',
+  nl: 'Flemish Nederlands',
+  ar: 'العربية',
+  hi: 'हिन्दी'
+};
+
+class LanguagePicker {
+  constructor(select) {
+    this.select = select;
+    this.items = [];
+    this.active = -1;
+
+    this.trigger = document.createElement('button');
+    this.trigger.type = 'button';
+    this.trigger.className = 'lang-trigger';
+    this.trigger.id = `${select.id}-picker`;
+    this.trigger.setAttribute('role', 'combobox');
+    this.trigger.setAttribute('aria-haspopup', 'listbox');
+    this.trigger.setAttribute('aria-expanded', 'false');
+    this.triggerLabel = document.createElement('span');
+    this.trigger.appendChild(this.triggerLabel);
+    select.before(this.trigger);
+
+    // The menu lives on <body> with fixed positioning so the panel's edges can't clip it.
+    this.menu = document.createElement('div');
+    this.menu.className = 'lang-menu';
+    this.menu.hidden = true;
+    this.search = document.createElement('input');
+    this.search.type = 'search';
+    this.search.className = 'lang-search';
+    this.search.autocomplete = 'off';
+    this.search.spellcheck = false;
+    this.list = document.createElement('ul');
+    this.list.className = 'lang-options';
+    this.list.id = `${select.id}-options`;
+    this.list.setAttribute('role', 'listbox');
+    this.search.setAttribute('aria-controls', this.list.id);
+    this.trigger.setAttribute('aria-controls', this.list.id);
+    this.menu.append(this.search, this.list);
+    document.body.appendChild(this.menu);
+
+    // The native select is kept for its value and events only.
+    select.classList.add('lang-native');
+    select.tabIndex = -1;
+    select.setAttribute('aria-hidden', 'true');
+    const label = document.querySelector(`label[for="${select.id}"]`);
+    if (label) {
+      label.htmlFor = this.trigger.id;
+      this.trigger.setAttribute('aria-labelledby', label.id || (label.id = `${select.id}-label`));
+    }
+
+    // Keep the button in step with the select however its value changes: set from code (profiles,
+    // saved settings), options rebuilt (UI language switch), or picked here.
+    const native = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    const picker = this;
+    Object.defineProperty(select, 'value', {
+      configurable: true,
+      get() { return native.get.call(this); },
+      set(v) { native.set.call(this, v); picker.sync(); }
+    });
+    new MutationObserver(() => this.sync()).observe(select, { childList: true, subtree: true, characterData: true });
+    select.addEventListener('change', () => this.sync());
+
+    // While open, pressing the button must not move focus out of the search box: that blur would
+    // close the menu first, and the click would then open it again.
+    this.trigger.addEventListener('mousedown', (e) => {
+      if (!this.menu.hidden) e.preventDefault();
+    });
+    this.trigger.addEventListener('click', () => (this.menu.hidden ? this.open() : this.close(true)));
+    this.trigger.addEventListener('keydown', (e) => {
+      if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+        e.preventDefault();
+        this.open();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Typing on the closed menu starts a search.
+        e.preventDefault();
+        this.open(e.key);
+      }
+    });
+    this.search.addEventListener('input', () => this.render());
+    this.search.addEventListener('keydown', (e) => this.onSearchKey(e));
+    this.search.addEventListener('blur', () => {
+      // Clicking an option keeps focus (mousedown is cancelled), so a blur means leaving the menu.
+      setTimeout(() => { if (!this.menu.contains(document.activeElement)) this.close(false); }, 0);
+    });
+    this.onOutside = (e) => {
+      if (!this.menu.contains(e.target) && !this.trigger.contains(e.target)) this.close(false);
+    };
+    this.onReposition = () => this.position();
+
+    this.sync();
+  }
+
+  // The select's options as menu entries: the first option ("Auto Detect" / "Original Only")
+  // stays on top, the languages below it A–Z.
+  entries() {
+    const uiLang = uiLangInput.value;
+    const all = [...this.select.options].map(opt => {
+      const special = opt.value === this.select.dataset.firstValue;
+      const english = special ? lcTranslate('en', this.select.dataset.firstI18n) : lcLanguageName(opt.value, 'en');
+      const nativeName = special ? '' : lcLanguageName(opt.value, opt.value);
+      const extra = [english, nativeName, LANG_SEARCH_ALIASES[opt.value] || '', opt.value].join(' ');
+      return { value: opt.value, label: opt.text, special, extra };
+    });
+    const collator = new Intl.Collator(LC_INTL_CODE[uiLang] || uiLang);
+    const languages = all.filter(e => !e.special).sort((a, b) => collator.compare(a.label, b.label));
+    return [...all.filter(e => e.special), ...languages];
+  }
+
+  sync() {
+    const opt = this.select.selectedOptions[0];
+    this.triggerLabel.textContent = opt ? opt.text : '';
+    this.search.placeholder = t('langSearchPlaceholder');
+    this.search.setAttribute('aria-label', t('langSearchPlaceholder'));
+    if (!this.menu.hidden) this.render();
+  }
+
+  // Shown A–Z; while searching, best matches first (as in the settings search).
+  render() {
+    const query = this.search.value;
+    let shown = this.entries().map(entry => ({ entry, positions: [] }));
+    if (query.trim()) {
+      shown = shown.map(({ entry }) => {
+        const onLabel = matchScore(query, entry.label);
+        const onExtra = matchScore(query, entry.extra, false);
+        const score = Math.max(onLabel ? onLabel.score : -Infinity, onExtra ? onExtra.score * 0.6 : -Infinity);
+        return { entry, score, positions: onLabel ? onLabel.positions : [] };
+      }).filter(r => r.score > -Infinity).sort((a, b) => b.score - a.score);
+    }
+    this.items = shown;
+    this.list.innerHTML = '';
+    if (!shown.length) {
+      const empty = document.createElement('li');
+      empty.className = 'lang-empty';
+      empty.textContent = t('langNoResults');
+      this.list.appendChild(empty);
+    }
+    const current = this.select.value;
+    shown.forEach(({ entry, positions }, i) => {
+      const li = document.createElement('li');
+      li.id = `${this.list.id}-${i}`;
+      li.className = 'lang-option' + (entry.special ? ' special' : '');
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', String(entry.value === current));
+      li.appendChild(highlighted(entry.label, positions));
+      // mousedown (not click) so the search box keeps focus and the menu doesn't close first
+      li.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        this.choose(entry.value);
+      });
+      li.addEventListener('mousemove', () => this.setActive(i, false));
+      this.list.appendChild(li);
+    });
+    // Searching: the best match; otherwise the current language.
+    const selected = shown.findIndex(r => r.entry.value === current);
+    this.setActive(query.trim() ? 0 : Math.max(selected, 0), true);
+  }
+
+  setActive(index, scroll) {
+    const options = [...this.list.querySelectorAll('.lang-option')];
+    if (!options.length) {
+      this.active = -1;
+      this.search.removeAttribute('aria-activedescendant');
+      return;
+    }
+    this.active = (index + options.length) % options.length;
+    options.forEach((li, i) => li.classList.toggle('active', i === this.active));
+    this.search.setAttribute('aria-activedescendant', options[this.active].id);
+    if (scroll) options[this.active].scrollIntoView({ block: 'nearest' });
+  }
+
+  onSearchKey(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      this.setActive(this.active + (e.key === 'ArrowDown' ? 1 : -1), true);
+    } else if (e.key === 'PageDown' || e.key === 'PageUp') {
+      e.preventDefault();
+      this.setActive(Math.min(Math.max(this.active + (e.key === 'PageDown' ? 8 : -8), 0), this.items.length - 1), true);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const item = this.items[this.active];
+      if (item) this.choose(item.entry.value);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      this.close(true);
+    } else if (e.key === 'Tab') {
+      this.close(false);
+    }
+  }
+
+  choose(value) {
+    const changed = value !== this.select.value;
+    this.select.value = value;
+    this.close(true);
+    if (changed) this.select.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // Below the button, or above it when there's more room there; the list scrolls under the search
+  // box, which stays at the top.
+  position() {
+    const r = this.trigger.getBoundingClientRect();
+    const below = window.innerHeight - r.bottom - 8;
+    const above = r.top - 8;
+    const up = below < 220 && above > below;
+    const room = (up ? above : below) - 6;
+    // At least 260 px wide so names stay readable under a narrow button (the UI language menu sits
+    // in a half-width column), kept inside the popup.
+    const margin = 12;
+    const width = Math.min(Math.max(r.width, 260), window.innerWidth - margin * 2);
+    const left = Math.max(margin, Math.min(r.left, window.innerWidth - width - margin));
+    Object.assign(this.menu.style, {
+      left: `${left}px`,
+      width: `${width}px`,
+      top: up ? '' : `${r.bottom + 6}px`,
+      bottom: up ? `${window.innerHeight - r.top + 6}px` : '',
+      maxHeight: `${Math.min(340, Math.max(room, 150))}px`
+    });
+  }
+
+  open(initialQuery = '') {
+    if (!this.menu.hidden) return;
+    document.querySelectorAll('.lang-menu:not([hidden])').forEach(m => m.picker && m.picker.close(false));
+    this.menu.picker = this;
+    this.search.value = initialQuery;
+    this.menu.hidden = false;
+    this.trigger.setAttribute('aria-expanded', 'true');
+    this.position();
+    this.render();
+    this.search.focus();
+    document.addEventListener('mousedown', this.onOutside, true);
+    window.addEventListener('scroll', this.onReposition, true);
+    window.addEventListener('resize', this.onReposition);
+  }
+
+  close(focusTrigger) {
+    if (this.menu.hidden) return;
+    this.menu.hidden = true;
+    this.trigger.setAttribute('aria-expanded', 'false');
+    this.search.removeAttribute('aria-activedescendant');
+    document.removeEventListener('mousedown', this.onOutside, true);
+    window.removeEventListener('scroll', this.onReposition, true);
+    window.removeEventListener('resize', this.onReposition);
+    if (focusTrigger) this.trigger.focus();
+  }
+}
+
+document.querySelectorAll('select.lang-select').forEach(sel => new LanguagePicker(sel));
+
 function applyLanguage(lang) {
   document.documentElement.lang = lang;
 
@@ -1448,7 +1713,8 @@ function goToSetting(item) {
   void target.offsetWidth; // restart the highlight animation
   target.classList.add('search-hit');
   setTimeout(() => target.classList.remove('search-hit'), 1800);
-  const control = item.el.matches('.panel-title') ? null : item.el.querySelector('select, input, button');
+  const control = item.el.matches('.panel-title') ? null
+    : item.el.querySelector('.lang-trigger') || item.el.querySelector('select, input, button');
   if (control) setTimeout(() => control.focus({ preventScroll: true }), 400);
 }
 

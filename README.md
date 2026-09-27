@@ -122,13 +122,24 @@ button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied 
 
 ## Choosing a model (measured on an RX 9070 XT, 16 GB)
 
-| Model | VRAM | Speed | Per line | Notes |
-|---|---|---|---|---|
-| **Hy-MT2-7B Q8_0** | 8.0 GB | 63 tok/s | 0.33 s | **recommended**: translation-specialised, fastest and most accurate |
-| Qwen2.5-7B-Instruct Q8_0 | 8.0 GB | 43 tok/s | 0.40 s | more literal mistakes |
-| Qwen3.5-9B Q8_0 | 11.1 GB | 33 tok/s | 0.57 s | thinking is switched off automatically |
-| Qwen3.8-27B UD-Q3_K_XL | 14.9 GB | 18–25 tok/s | 1.0–1.3 s | good wording, very little VRAM left |
+Translation quality and speed through the app's own translator, on 24 FLORES sentences per language
+pair (about 18 words each). Quality is chrF (higher is better) averaged over 29 languages into English
+and English into 7 (Traditional and Simplified Chinese, Japanese, Korean, Spanish, Portuguese,
+Turkish); differences of a point or two are within noise.
 
+| Model | File | Into English | From English | Per line (median / slowest 10 %) | Speed | Notes |
+|---|---|---|---|---|---|---|
+| **Hy-MT2-7B Q8_0** | 8.0 GB | **67.8** | 51.2 | **0.49 s** / 0.71 s | 65 tok/s | **recommended**: best balance of accuracy and speed |
+| Hy-MT2-30B-A3B i1-IQ3_M | 13.3 GB | 67.7 | **52.0** | 0.94 s / 1.14 s | 53 tok/s | no more accurate than the 7B, twice as slow |
+| MiLMMT-46-12B Q6_K | 9.7 GB | 67.3 | 48.9 | 0.84 s / 1.08 s | 37 tok/s | ⚠ needs its own prompt format, which the app doesn't use yet |
+| MiLMMT-46-4B Q8_0 | 4.1 GB | 65.3 | 47.0 | 0.36 s / 0.46 s | 93 tok/s | ⚠ same; fastest, 2–3 points less accurate |
+| Gemma-4-12B Q8_0 | 12.7 GB | 65.3 | 50.2 | 1.82 s / 2.33 s | 16 tok/s | doesn't fit fully in 16 GB of VRAM |
+| Qwen3.5-9B Q8_0 | 9.5 GB | 61.9 | 46.6 | 0.86 s / 1.13 s | 33 tok/s | thinking is switched off automatically |
+| Qwen2.5-7B-Instruct Q8_0 | 8.1 GB | – | – | ~0.40 s | 43 tok/s | older test: more literal mistakes |
+| Qwen3.8-27B UD-Q3_K_XL | 13.1 GB | – | – | 1.0–1.3 s | 18–25 tok/s | older test: good wording, very little VRAM left |
+
+- MiLMMT (Xiaomi, Gemma licence) and Hy-MT2-30B-A3B write real colloquial Cantonese when asked;
+  Hy-MT2-7B writes formal written Chinese, which is why Cantonese is a video language only.
 - Hy-MT2 (`tencent/Hy-MT2-7B-GGUF` in LM Studio's Discover tab) gets its official prompt template
   and sampling settings automatically.
 - Hybrid "thinking" models are asked not to reason (`reasoning_effort: none`), so they answer

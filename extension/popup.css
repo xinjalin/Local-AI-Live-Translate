@@ -1132,6 +1132,235 @@ body {
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+/* Language pickers: a menu button over a hidden native select */
+
+.lang-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lang-trigger {
+  width: 100%;
+  height: 38px;
+  padding: 0 30px 0 12px;
+  border-radius: 11px;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg) var(--chevron) no-repeat right 11px center;
+  color: var(--field-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lang-trigger span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lang-trigger:focus-visible,
+.lang-trigger[aria-expanded="true"] {
+  outline: none;
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.lang-menu {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 14px;
+  border: 1px solid var(--menu-border);
+  background: var(--menu-bg);
+  box-shadow: var(--menu-shadow);
+  color-scheme: var(--scheme-panel);
+  overflow: hidden;
+}
+
+.lang-menu[hidden] {
+  display: none;
+}
+
+/* Stays at the top; only the list below it scrolls */
+.lang-search {
+  flex: none;
+  margin: 6px 6px 4px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
+  color: var(--field-text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+.lang-search::placeholder {
+  color: var(--field-placeholder);
+}
+
+.lang-search::-webkit-search-cancel-button {
+  display: none;
+}
+
+.lang-search:focus {
+  outline: none;
+  border-color: var(--accent-strong);
+}
+
+.lang-options {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 2px 6px 6px;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.lang-option {
+  position: relative;
+  padding: 7px 28px 7px 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  color: var(--menu-text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lang-option.special {
+  color: var(--menu-muted);
+}
+
+.lang-option.active {
+  background: var(--menu-active);
+}
+
+.lang-option mark {
+  background: none;
+  color: var(--menu-mark);
+  font-weight: 800;
+}
+
+/* The current choice: a check mark on the right */
+.lang-option[aria-selected="true"] {
+  color: var(--menu-mark);
+  font-weight: 600;
+}
+
+.lang-option[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 5px;
+  height: 9px;
+  margin-top: -6px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.lang-empty {
+  padding: 10px;
+  font-size: 12px;
+  color: var(--menu-muted);
+  text-align: center;
+}
+
+/* Every other dropdown: Chrome's customisable select (Chrome 135+) draws its list in the same
+   rounded menu as the language pickers, while keeping the native keyboard and accessibility
+   behaviour. Older browsers keep the plain system list. */
+@supports (appearance: base-select) {
+  select:not(.lang-native),
+  select:not(.lang-native)::picker(select) {
+    appearance: base-select;
+  }
+
+  select:not(.lang-native) {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* The chevron comes from the field's background image */
+  select:not(.lang-native)::picker-icon {
+    display: none;
+  }
+
+  select:not(.lang-native)::picker(select) {
+    min-width: max(anchor-size(width), 200px);
+    max-height: min(340px, 70vh);
+    margin-block: 6px;
+    padding: 6px;
+    border-radius: 14px;
+    border: 1px solid var(--menu-border);
+    background: var(--menu-bg);
+    box-shadow: var(--menu-shadow);
+    color-scheme: var(--scheme-panel);
+    scrollbar-width: thin;
+  }
+
+  select:not(.lang-native) option {
+    position: relative;
+    display: block;
+    padding: 7px 28px 7px 10px;
+    border-radius: 9px;
+    background: none;
+    color: var(--menu-text);
+    font-size: 12.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+
+  select:not(.lang-native) option::checkmark {
+    display: none;
+  }
+
+  select:not(.lang-native) option:hover,
+  select:not(.lang-native) option:focus-visible {
+    outline: none;
+    background: var(--menu-active);
+  }
+
+  select:not(.lang-native) option:disabled {
+    color: var(--menu-muted);
+    cursor: default;
+  }
+
+  /* The current choice: highlighted with a check mark on the right, as in the language menus */
+  select:not(.lang-native) option:checked {
+    color: var(--menu-mark);
+    font-weight: 600;
+  }
+
+  select:not(.lang-native) option:checked::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    width: 5px;
+    height: 9px;
+    margin-top: -6px;
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+}
+
 /* Model row */
 
 .model-row {
