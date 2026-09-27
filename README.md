@@ -17,6 +17,38 @@ Chrome extension ──audio──> Local AI Live Translate server ──> LM St
                   <─subtitles─     (speech recognition)            (translation)
 ```
 
+## Screenshots
+
+The extension popup in the **Dark** and **Light** themes (there are also Hybrid, three OLED themes and
+System), captured while translating Japanese into English with Hy-MT2-7B:
+
+<table>
+  <tr>
+    <th>Dark</th>
+    <th>Light</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/popup-live-dark.png" width="260" alt="Live tab in the dark theme: Japanese to English, hy-mt2-7b at 67 t/s, server connected with a 1.12 s round trip"></td>
+    <td><img src="docs/images/popup-live-light.png" width="260" alt="Live tab in the light theme"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/popup-display-dark.png" width="260" alt="Display tab in the dark theme: subtitle colours, font and a live preview with a speaker label"></td>
+    <td><img src="docs/images/popup-display-light.png" width="260" alt="Display tab in the light theme"></td>
+  </tr>
+</table>
+
+Hovering over the round-trip time shows where the time went, from the end of speech to the subtitle
+appearing on the page:
+
+<img src="docs/images/popup-latency-dark.png" width="300" alt="Latency tooltip: pause detection 704 ms, speech recognition 93 ms, speaker labels 49 ms, LLM translation 319 ms, round trip 1.12 s">
+
+The server window logs each line as it's recognised (with the language and speaker) and translated
+(with the model's time and speed):
+
+<img src="docs/images/server-console.png" alt="Server console: SenseVoice recognising Japanese, Korean and Chinese speech from three speakers, and Hy-MT2-7B translating each line into English in 0.3 to 0.6 s at 65 t/s">
+
+The numbers in these screenshots come from a real run on an RX 9070 XT, using the SenseVoice test clips.
+
 ## What you need
 
 - **Windows 10 or 11, 64-bit**, and **Google Chrome** (or another Chromium browser).
