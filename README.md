@@ -207,8 +207,10 @@ Turkish); differences of a point or two are within noise.
   keeps translating, the panel says the model isn't installed, and the Model tab offers the download
   with a progress bar. Downloads keep running in LM Studio when the popup closes; once finished, the
   profile's model is selected and loaded automatically. Exported profiles record where their model
-  comes from (LM Studio catalog or Hugging Face repo) — keep the app server running while exporting so
-  it can look this up for models added from Hugging Face.
+  comes from (LM Studio catalog or Hugging Face repo, read by the app server) and who published it.
+  When the source isn't known (exported while the app server was off, or by an older version),
+  **Find and download** looks the model up on Hugging Face by its name, publisher and quantization;
+  only those are sent, and only when you press the button.
 - **Languages:** the video and subtitle languages can each be Traditional or Simplified Chinese,
   English, Japanese, Korean, Spanish, Portuguese, French, Italian, German, Dutch, Russian, Ukrainian,
   Polish, Turkish, Indonesian, Vietnamese, Thai, Malay, Filipino, Hindi, Bengali or Arabic, and the

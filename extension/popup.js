@@ -2188,20 +2188,23 @@ function renderMissingModel() {
   const status = document.getElementById('download-status');
   const progress = document.getElementById('download-progress');
   const download = modelDownload && modelDownload.key === pendingModel.key ? modelDownload : null;
-  const canDownload = lcValidDownloadSource(pendingModel.download);
-  const running = download && ['starting', 'downloading', 'paused', 'completed'].includes(download.status);
+  const known = lcValidDownloadSource(pendingModel.download);
+  // Without a known source the button first looks the model up on Hugging Face.
+  const canDownload = known || (lcCanFindModel(pendingModel) && !pendingModel.notFound);
+  const running = download && ['searching', 'starting', 'downloading', 'paused', 'completed'].includes(download.status);
 
   button.hidden = !canDownload || running;
-  button.textContent = pendingModel.sizeBytes
-    ? t('btnDownloadModel', { size: lcFormatBytes(pendingModel.sizeBytes) })
-    : t('btnDownloadModelNoSize');
-  progress.hidden = !running;
+  button.textContent = !known ? t('btnFindDownload')
+    : pendingModel.sizeBytes ? t('btnDownloadModel', { size: lcFormatBytes(pendingModel.sizeBytes) })
+      : t('btnDownloadModelNoSize');
+  progress.hidden = !running || download.status === 'searching';
 
   let text = '';
   if (!canDownload) {
-    text = t('downloadNoSource');
+    text = t(pendingModel.notFound ? 'downloadNotFound' : 'downloadNoSource');
   } else if (download) {
-    if (download.status === 'starting') text = t('downloadStarting');
+    if (download.status === 'searching') text = t('downloadSearching');
+    else if (download.status === 'starting') text = t('downloadStarting');
     else if (download.status === 'paused') text = t('downloadPaused');
     else if (download.status === 'failed') text = t('downloadFailed', { err: download.error || '' });
     else {
@@ -2214,9 +2217,25 @@ function renderMissingModel() {
 }
 
 async function startModelDownload() {
-  const meta = pendingModel;
-  if (!meta || !lcValidDownloadSource(meta.download)) return;
+  let meta = pendingModel;
+  if (!meta) return;
   const base = stripUrl(lmstudioUrlInput.value);
+  if (!lcValidDownloadSource(meta.download)) {
+    // The profile doesn't say where its model comes from: find it on Hugging Face first.
+    if (!lcCanFindModel(meta)) return;
+    setModelDownload({ key: meta.key, base, status: 'searching' });
+    const found = await lcFindModelSource(meta);
+    if (!pendingModel || pendingModel.key !== meta.key) return;
+    if (!found) {
+      setModelDownload(null);
+      setPendingModel({ ...meta, notFound: true });
+      renderMissingModel();
+      return;
+    }
+    meta = { ...meta, download: found.download, sizeBytes: meta.sizeBytes || found.sizeBytes };
+    setPendingModel(meta);
+    rememberModelSource(meta);
+  }
   setModelDownload({ key: meta.key, base, status: 'starting' });
   try {
     const res = await lcStartDownload(base, meta);
@@ -2259,6 +2278,21 @@ function pollModelDownload() {
   }, 1000);
 }
 
+// Keep a looked-up download source with the saved profile(s) using that model, so exporting them
+// again carries it.
+async function rememberModelSource(meta) {
+  const { profiles = [] } = await chrome.storage.local.get('profiles');
+  let changed = false;
+  for (const profile of profiles) {
+    if (profile.settings && profile.settings.lmstudioModel === meta.key && !(profile.model && profile.model.download)) {
+      profile.model = { ...(profile.model || {}), key: meta.key, name: meta.name || meta.key, publisher: meta.publisher || '',
+        quantization: meta.quantization || '', sizeBytes: meta.sizeBytes || 0, download: meta.download };
+      changed = true;
+    }
+  }
+  if (changed) chrome.storage.local.set({ profiles });
+}
+
 // The profile's model is installed now: use it and load it into LM Studio.
 async function modelReady(key) {
   await refreshModels();
@@ -2279,7 +2313,8 @@ async function modelReady(key) {
 function resumeModelDownload() {
   if (pendingModel && lastModels.some(m => m.id === pendingModel.key)) {
     modelReady(pendingModel.key);
-  } else if (modelDownload && modelDownload.status === 'completed') {
+  } else if (modelDownload && ['completed', 'searching'].includes(modelDownload.status)) {
+    // (a Hugging Face lookup cut short by closing the popup: just offer the button again)
     setModelDownload(null);
   } else if (modelDownload) {
     renderMissingModel();
