@@ -22,6 +22,8 @@ LANG_NAMES = {
     "zh-TW": "Traditional Chinese", "zh-CN": "Simplified Chinese", "en": "English", "ja": "Japanese",
     "ko": "Korean", "es": "Spanish", "fr": "French", "de": "German", "ru": "Russian", "id": "Indonesian",
     "vi": "Vietnamese", "th": "Thai", "ms": "Malay", "fil": "Filipino", "hi": "Hindi", "ar": "Arabic",
+    "pt": "Portuguese", "it": "Italian", "tr": "Turkish", "pl": "Polish", "uk": "Ukrainian", "nl": "Dutch",
+    "bn": "Bengali",
 }
 GOOGLE_CODES = {"zh-TW": "zh-TW", "zh-CN": "zh-CN", "fil": "tl"}
 

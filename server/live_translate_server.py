@@ -60,14 +60,15 @@ SENSE_VOICE_DIR = MODEL_DIR / "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024
 WHISPER_DIR = MODEL_DIR / "sherpa-onnx-whisper-small"
 # Dolphin small (DataoceanAI): CTC model for 40 Asian languages (Indonesian, Thai, Vietnamese, ...).
 DOLPHIN_DIR = MODEL_DIR / "sherpa-onnx-dolphin-small-ctc-multi-lang-int8-2025-04-02"
-# Omnilingual ASR 300M (Meta): CTC model for 1,600+ languages; the engine for Hindi and Arabic.
+# Omnilingual ASR 300M (Meta): CTC model for 1,600+ languages; the engine for Hindi, Arabic,
+# Bengali and the European languages SenseVoice doesn't know.
 OMNI_DIR = MODEL_DIR / "sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-v2-int8-2026-02-05"
 # Speaker detection: 3D-Speaker CAM++ voice embeddings (192 values per line), Chinese + English
 # training data but works for any language since it models the voice, not the words.
 SPEAKER_MODEL = MODEL_DIR / "speaker" / "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx"
 
 # Source languages SenseVoice can be told about explicitly (better than auto-detect).
-SENSE_VOICE_LANGS = {"zh-TW": "zh", "zh-CN": "zh", "en": "en", "ja": "ja", "ko": "ko"}
+SENSE_VOICE_LANGS = {"zh-TW": "zh", "zh-CN": "zh", "en": "en", "ja": "ja", "ko": "ko", "yue": "yue"}
 # Source languages each speech engine can recognise, of those the extension offers (None: all).
 # Measured on Google FLEURS recordings, Dolphin small vs Whisper-Small (word / character errors):
 #   Indonesian 18.4% vs 18.0% WER, Vietnamese 10.3% vs 10.8%, Malay 9.9% vs 12.6%,
@@ -75,12 +76,21 @@ SENSE_VOICE_LANGS = {"zh-TW": "zh", "zh-CN": "zh", "en": "en", "ja": "ja", "ko":
 #   of speech against ~0.4 s). SenseVoice can't recognise any of these.
 # Hindi / Arabic (FLEURS, word errors): Omnilingual 6.1% / 15.8%, Dolphin 14.3% / 19.4%,
 #   Whisper-Small 79% (unusable) / 25.5%; Omnilingual ~0.07 s per second of speech.
+# Cantonese (character errors): SenseVoice 4.7%, Dolphin 12.0%, Omnilingual 24.2%; Whisper-Small
+#   has no Cantonese. Bengali (word / character): Omnilingual 15.5% / 7.2%, Dolphin 32.4%,
+#   Whisper-Small 100%. Omnilingual vs Whisper-Small (word / character errors), with Omnilingual
+#   3-6x faster: Portuguese 14.3/4.0% vs 10.6/3.1%, Italian 13.4/1.7% vs 10.2/1.8%, Turkish
+#   22.2/4.0% vs 21.6/8.2%, Polish 24.9/4.1% vs 23.9/6.0%, Ukrainian 25.7/4.6% vs 16.8/5.6%,
+#   Dutch 22.7/7.1% vs 17.7/4.9%.
 ENGINE_LANGS = {
-    "sensevoice": {"zh-TW", "zh-CN", "en", "ja", "ko"},
-    "dolphin": {"zh-TW", "zh-CN", "ja", "ko", "ru", "id", "vi", "th", "ms", "fil", "hi", "ar"},
+    "sensevoice": {"zh-TW", "zh-CN", "en", "ja", "ko", "yue"},
+    "dolphin": {"zh-TW", "zh-CN", "ja", "ko", "yue", "ru", "id", "vi", "th", "ms", "fil", "hi", "ar", "bn"},
     "whisper": None,
     "omnilingual": None,
 }
+# Languages an engine that otherwise takes any language can't recognise (Whisper-Small predates
+# Cantonese support).
+ENGINE_EXCLUDES = {"whisper": {"yue"}}
 # Whisper's codes where they differ from the extension's.
 WHISPER_CODES = {"zh-TW": "zh", "zh-CN": "zh", "fil": "tl"}
 ENGINE_FILES = {
@@ -98,11 +108,15 @@ def available_engines():
 # Engines to switch to, in order, when the chosen one can't recognise a language: SenseVoice
 # wherever it can (fastest), then Whisper-Small, then Dolphin - except where another engine was
 # measured to be better (see ENGINE_LANGS): Dolphin small for the South-East Asian languages,
-# Omnilingual for Hindi and Arabic.
+# Omnilingual for Hindi, Arabic, Bengali and the European languages (as accurate as Whisper-Small
+# or close, and much faster; Whisper-Small stays selectable).
 DEFAULT_FALLBACK = ("sensevoice", "whisper", "dolphin")
 FALLBACK_ORDER = {
     **{lang: ("dolphin", "whisper") for lang in ("id", "vi", "th", "ms", "fil")},
     **{lang: ("omnilingual", "dolphin", "whisper") for lang in ("hi", "ar")},
+    **{lang: ("omnilingual", "whisper") for lang in ("pt", "it", "tr", "pl", "uk", "nl")},
+    "bn": ("omnilingual", "dolphin"),
+    "yue": ("sensevoice", "dolphin"),
 }
 
 
@@ -111,6 +125,8 @@ def pick_engine(engine, source_lang):
     (see FALLBACK_ORDER). With auto-detect every engine is used as chosen."""
     def fits(e):
         langs = ENGINE_LANGS.get(e, set())
+        if source_lang in ENGINE_EXCLUDES.get(e, ()):
+            return False
         return ENGINE_FILES[e].exists() and (source_lang == "auto" or langs is None or source_lang in langs)
     if engine in ENGINE_FILES and fits(engine):
         return engine
@@ -541,10 +557,13 @@ class Session:
             if not raw:
                 continue
             target = self.target_lang
-            if lang == "yue":
-                lang = "zh"
             if not lang and self.source_lang != "auto":
                 lang = "zh" if self.source_lang.startswith("zh") else self.source_lang
+            if lang == "yue":
+                # SenseVoice writes Cantonese in Simplified characters; Hong Kong uses Traditional.
+                # Colloquial Cantonese (唔, 嘅, 佢哋) isn't standard Chinese, so it goes through the
+                # translator below even for Chinese subtitles, rather than only OpenCC.
+                raw = self.cc["yue"].convert(raw)
             base = {"event": "subtitle", "text_raw": raw, "start": round(start, 3), "duration": round(duration, 2)}
             if speaker is not None:
                 base["speaker"] = speaker
@@ -716,7 +735,7 @@ class App:
         self.asr = Asr(args.threads)
         self.embedder = SpeakerEmbedder(args.speaker_threads)
         self.translator = Translator()
-        self.cc = {"zh-TW": opencc.OpenCC("s2twp"), "zh-CN": opencc.OpenCC("t2s")}
+        self.cc = {"zh-TW": opencc.OpenCC("s2twp"), "zh-CN": opencc.OpenCC("t2s"), "yue": opencc.OpenCC("s2hk")}
         self.connections = 0
 
     @staticmethod

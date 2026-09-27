@@ -3,9 +3,13 @@
 
 // Languages the popup itself is available in (each has a dictionary in LC_I18N below).
 const LC_UI_LANGS = ['zh-TW', 'zh-CN', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'ru', 'id'];
-// Languages for the video and the subtitles: the popup languages plus ones that only need speech
-// recognition (Dolphin) and translation, not a translated popup.
-const LC_LANG_CODES = [...LC_UI_LANGS, 'vi', 'th', 'ms', 'fil', 'hi', 'ar'];
+// Languages for the video and the subtitles, in menu order: the popup languages plus ones that
+// only need speech recognition and translation, not a translated popup.
+const LC_LANG_CODES = ['zh-TW', 'zh-CN', 'yue', 'en', 'ja', 'ko', 'es', 'pt', 'fr', 'it', 'de', 'nl', 'ru',
+  'uk', 'pl', 'tr', 'id', 'vi', 'th', 'ms', 'fil', 'hi', 'bn', 'ar'];
+// Video languages that aren't offered for subtitles: Cantonese is translated into standard written
+// Chinese; the translation model doesn't reliably write colloquial Cantonese.
+const LC_SOURCE_ONLY_LANGS = ['yue'];
 
 // Intl.DisplayNames needs script subtags to tell the two Chinese variants apart.
 const LC_INTL_CODE = { 'zh-TW': 'zh-Hant', 'zh-CN': 'zh-Hans' };
