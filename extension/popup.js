@@ -30,6 +30,10 @@ const contextSizeInput = document.getElementById('context-size');
 const promptTemplateInput = document.getElementById('prompt-template');
 const pinSubtitlesInput = document.getElementById('pin-subtitles');
 const themeInput = document.getElementById('theme');
+const customThemeEl = document.getElementById('custom-theme');
+const themeStyleInput = document.getElementById('theme-style');
+const themeBaseInput = document.getElementById('theme-base');
+const themeColorInputs = Object.fromEntries(LC_THEME_COLOR_KEYS.map(key => [key, document.getElementById(`theme-${key}`)]));
 const saveTranscriptsInput = document.getElementById('save-transcripts');
 const bgOpacityInput = document.getElementById('bg-opacity');
 const fontWeightInput = document.getElementById('font-weight');
@@ -86,17 +90,31 @@ let downloadTimer = null;
 
 const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 
+// The Custom theme's style and colours ({ base, style, background, panel, ... }; see theme.js),
+// stored as `customTheme`. null until the Custom theme is first picked.
+let customTheme = null;
+
 function applyTheme(theme) {
-  const resolved = theme === 'system' ? (systemDark.matches ? 'dark' : 'light') : (theme || DEFAULTS.theme);
-  document.documentElement.dataset.theme = resolved;
+  theme = theme || DEFAULTS.theme;
+  lcApplyTheme(theme, customTheme);
+  customThemeEl.hidden = theme !== 'custom';
   try {
     localStorage.setItem('lcTheme', theme);
+    localStorage.setItem('lcCustomTheme', JSON.stringify(customTheme));
   } catch (e) {}
+}
+
+function setCustomThemeInputs() {
+  const c = lcSanitizeCustomTheme(customTheme);
+  themeStyleInput.value = c.style;
+  themeBaseInput.value = c.base;
+  for (const key of LC_THEME_COLOR_KEYS) themeColorInputs[key].value = c[key];
 }
 
 // Apply the last theme right away so the popup doesn't flash the wrong colours
 // while chrome.storage loads.
 try {
+  customTheme = JSON.parse(localStorage.getItem('lcCustomTheme') || 'null');
   applyTheme(localStorage.getItem('lcTheme') || DEFAULTS.theme);
 } catch (e) {}
 systemDark.addEventListener('change', () => {
@@ -1180,7 +1198,7 @@ function showProviderFields() {
     'qwencloudUrl', 'qwencloudKey', 'qwencloudModel',
     'deepseekKey', 'minSilence', 'maxSpeech', 'vadThreshold', 'detectSpeakers', 'speakerThreshold',
     'uiLang', 'sourceLang', 'targetLang', 'showBilingual', 'asrEngine',
-    'contextSize', 'promptTemplate', 'theme', 'lmModelState', 'saveTranscripts',
+    'contextSize', 'promptTemplate', 'theme', 'customTheme', 'lmModelState', 'saveTranscripts',
     'profiles', 'activeProfile', 'displayConfigs', 'activeDisplayConfig', 'pendingModel', 'lmDownload',
     ...Object.keys(LC_SUBTITLE_DEFAULTS)
   ]);
@@ -1189,7 +1207,9 @@ function showProviderFields() {
   const look = { ...LC_SUBTITLE_DEFAULTS };
   for (const key of Object.keys(look)) if (result[key] !== undefined) look[key] = result[key];
 
-  themeInput.value = result.theme || DEFAULTS.theme;
+  themeInput.value = LC_THEMES.includes(result.theme) ? result.theme : DEFAULTS.theme;
+  customTheme = (result.customTheme || themeInput.value === 'custom') ? lcSanitizeCustomTheme(result.customTheme) : null;
+  setCustomThemeInputs();
   applyTheme(themeInput.value);
   contextSizeInput.value = String(result.contextSize || DEFAULTS.contextSize);
   setTemplateValue(result.promptTemplate || DEFAULTS.promptTemplate);
@@ -1369,8 +1389,44 @@ contextSizeInput.addEventListener('change', () => {
 pinSubtitlesInput.addEventListener('change', saveSettings);
 saveTranscriptsInput.addEventListener('change', saveSettings);
 themeInput.addEventListener('change', () => {
+  if (themeInput.value === 'custom' && !customTheme) {
+    // The first custom theme starts from the one that was in use (still shown until applyTheme).
+    customTheme = lcCustomThemeFrom(document.documentElement.dataset.theme);
+    setCustomThemeInputs();
+    chrome.storage.local.set({ customTheme });
+  }
   applyTheme(themeInput.value);
   saveSettings();
+});
+
+// Custom theme. Only the popup uses it, so it's stored on its own (not sent to the capture like
+// saveSettings() does); while a colour picker is dragged the popup follows every step and the
+// storage at most every 200 ms.
+function saveCustomTheme() {
+  clearTimeout(customThemeSaveTimer);
+  customThemeSaveTimer = null;
+  chrome.storage.local.set({ customTheme });
+  try {
+    localStorage.setItem('lcCustomTheme', JSON.stringify(customTheme));
+  } catch (e) {}
+  refreshConfigStates();
+}
+let customThemeSaveTimer = null;
+function changeCustomTheme(changes, now) {
+  customTheme = { ...lcSanitizeCustomTheme(customTheme), ...changes };
+  lcApplyTheme('custom', customTheme);
+  if (now) saveCustomTheme();
+  else if (!customThemeSaveTimer) customThemeSaveTimer = setTimeout(saveCustomTheme, 200);
+}
+for (const [key, input] of Object.entries(themeColorInputs)) {
+  input.addEventListener('input', () => changeCustomTheme({ [key]: input.value }, false));
+  input.addEventListener('change', () => changeCustomTheme({ [key]: input.value }, true));
+}
+themeStyleInput.addEventListener('change', () => changeCustomTheme({ style: themeStyleInput.value }, true));
+themeBaseInput.addEventListener('change', () => {
+  // Starting from another theme replaces the colours (and style) with that theme's.
+  changeCustomTheme(lcCustomThemeFrom(themeBaseInput.value), true);
+  setCustomThemeInputs();
 });
 deepseekKeyInput.addEventListener('input', saveSettings);
 
@@ -1846,7 +1902,8 @@ document.addEventListener('keydown', (e) => {
 // Saved configs. Two independent kinds:
 //   - profiles: the translation setup (LLM server + URL, model, context size, languages,
 //     speech engine, bilingual mode). The DeepSeek key is deliberately never copied into them.
-//   - display configs: the subtitle look, layout and timing.
+//   - display configs: the subtitle look, layout and timing, and the popup's theme (with the
+//     Custom theme's colours when that's the one in use).
 // Stored as chrome.storage.local `profiles` / `displayConfigs` ([{ id, name, settings }]) plus the
 // id of the active one (`activeProfile` / `activeDisplayConfig`).
 // ---------------------------------------------------------------------------
@@ -1883,12 +1940,24 @@ function captureDisplay() {
     historyLines: parseInt(historyLinesInput.value),
     pinSubtitles: pinSubtitlesInput.checked,
     holdTime: parseFloat(holdTimeInput.value),
-    minDisplay: parseFloat(minDisplayInput.value)
+    minDisplay: parseFloat(minDisplayInput.value),
+    theme: themeInput.value,
+    ...(themeInput.value === 'custom' ? { customTheme: lcSanitizeCustomTheme(customTheme) } : {})
   };
 }
 
 function applyDisplay(settings) {
   setDisplayInputs(settings);
+  // (display configs saved before they included the theme leave it as it is)
+  if (LC_THEMES.includes(settings.theme)) {
+    if (settings.customTheme) {
+      customTheme = lcSanitizeCustomTheme(settings.customTheme);
+      setCustomThemeInputs();
+      chrome.storage.local.set({ customTheme });
+    }
+    themeInput.value = settings.theme;
+    applyTheme(settings.theme);
+  }
   // The dragged spot isn't one of the inputs saveSettings() writes, so store it here.
   chrome.storage.local.set({ subtitleX: draggedSpot.x, subtitleY: draggedSpot.y });
   updateRangeLabels();
@@ -1986,9 +2055,11 @@ async function applyProfile(p, config) {
   }
 }
 
-// Same values, ignoring key order and number/string differences from the inputs.
+// Same values, ignoring key order and number/string differences from the inputs (also inside
+// objects, like a custom theme's colours).
 function sameSettings(a, b) {
-  const norm = (o) => JSON.stringify(Object.keys(o).sort().map(k => [k, o[k] === null ? null : String(o[k])]));
+  const norm = (o) => JSON.stringify(Object.keys(o).sort().map(k => [k,
+    o[k] === null ? null : typeof o[k] === 'object' ? norm(o[k]) : String(o[k])]));
   return norm(a) === norm(b);
 }
 

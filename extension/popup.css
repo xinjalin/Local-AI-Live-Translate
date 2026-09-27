@@ -1,6 +1,9 @@
 /* ==========================================================================
    Themes. Every colour in this file comes from these tokens, so switching
-   theme only changes colours, never layout. popup.js sets data-theme on <html>.
+   theme only changes colours, never layout. theme.js sets data-theme on <html>,
+   and for the Custom theme works out every token from the user's colours.
+   (--heading and --label-text are only set by the Custom theme: the built-in
+   themes show panel titles and field labels in --panel-muted.)
    ========================================================================== */
 
 :root,
@@ -1066,7 +1069,7 @@ body {
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--panel-muted);
+  color: var(--heading, var(--panel-muted));
 }
 
 .field {
@@ -1080,7 +1083,7 @@ body {
 .swatch-field > span {
   font-size: 11.5px;
   font-weight: 500;
-  color: var(--panel-muted);
+  color: var(--label-text, var(--panel-muted));
 }
 
 .field-row {
@@ -1838,6 +1841,29 @@ select.lang-native {
 .swatch-field input[type="color"]::-webkit-color-swatch {
   border: none;
   border-radius: 7px;
+}
+
+/* Custom theme: two columns of swatches under small group titles */
+
+.custom-theme:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.swatch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.swatch-group-title {
+  margin-bottom: -2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--panel-muted);
 }
 
 /* Sliders */

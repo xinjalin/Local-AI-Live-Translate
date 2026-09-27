@@ -19,8 +19,8 @@ Chrome extension ──audio──> Local AI Live Translate server ──> LM St
 
 ## Screenshots
 
-The extension popup in the **Dark** and **Light** themes (there are also Hybrid, three OLED themes and
-System), captured while translating Japanese into English with Hy-MT2-7B:
+The extension popup in the **Dark** and **Light** themes (there are also Hybrid, three OLED themes,
+System and your own Custom theme), captured while translating Japanese into English with Hy-MT2-7B:
 
 <table>
   <tr>
@@ -196,8 +196,9 @@ Turkish); differences of a point or two are within noise.
   (e.g. "Anime JP → EN"), and switch between them from the dropdown. Choosing a profile applies it at
   once and loads its model into LM Studio. The DeepSeek key is never stored in profiles.
 - **Display configs** (Display tab): save the subtitle look, layout and timing (the *Subtitle
-  Timing* settings on the Tuning tab) separately from profiles, so any profile can be combined with
-  any display style.
+  Timing* settings on the Tuning tab) and the popup's theme (with your Custom theme's colours)
+  separately from profiles, so any profile can be combined with any display style. Display configs
+  saved before 1.6.0 don't include a theme and leave it as it is.
 - Both have the same controls: **+** saves the current settings as a new config, **✓** updates the
   selected config after you've changed something (the panel says when it differs), and the bin deletes
   it (click twice).
@@ -293,6 +294,11 @@ Turkish); differences of a point or two are within noise.
 - **Themes** (Display tab): Dark, Light, Hybrid (dark shell with light panels), System, and the OLED
   family with a blue accent — **OLED Light** (white), **OLED Dim** (dark navy) and **OLED Black**
   (true black `#000`, no background glow: on OLED / AMOLED screens black pixels are switched off).
+  **Custom** makes your own: pick a **Glass** style (glowing background, see-through panels, like
+  Dark and Light) or **Flat** (solid surfaces, like the OLED themes), start from any built-in theme,
+  and set the colours of the background, panels, accent and buttons, and of the headings, labels,
+  text, hints and dropdowns. Text that would be hard to read on your background is lightened or
+  darkened just enough to stay readable. Save it with a display config to keep several.
   Themes only change colours; the layout is the same in all of them.
 
 ## Server options

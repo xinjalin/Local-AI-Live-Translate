@@ -110,7 +110,11 @@ function sanitizeDisplay(raw) {
     historyLines: pick(Number(raw.historyLines), [0, 1, 2], d.historyLines),
     pinSubtitles: raw.pinSubtitles === true,
     holdTime: num(raw.holdTime, 0, 5, d.holdTime),
-    minDisplay: num(raw.minDisplay, 1, 10, d.minDisplay)
+    minDisplay: num(raw.minDisplay, 1, 10, d.minDisplay),
+    // The popup theme (not in files exported before display configs included it: those leave the
+    // theme as it is). The Custom theme's colours only come with the Custom theme.
+    ...(LC_THEMES.includes(raw.theme) ? { theme: raw.theme } : {}),
+    ...(raw.theme === 'custom' ? { customTheme: lcSanitizeCustomTheme(raw.customTheme) } : {})
   };
 }
 
@@ -199,9 +203,12 @@ function profileSummary(s, model) {
 const SIZE_KEYS = { xsmall: 'optSizeXsmall', small: 'optSizeSmall', medium: 'optSizeMedium', large: 'optSizeLarge', xlarge: 'optSizeXlarge', xxlarge: 'optSizeXxlarge', huge: 'optSizeHuge' };
 const SHADOW_KEYS = { off: 'optShadowOff', soft: 'optShadowSoft', medium: 'optShadowMedium', strong: 'optShadowStrong', outline: 'optShadowOutline' };
 
+const THEME_KEYS = { dark: 'optThemeDark', light: 'optThemeLight', hybrid: 'optThemeHybrid', 'oled-light': 'optThemeOledLight', 'oled-dim': 'optThemeOledDim', 'oled-black': 'optThemeOledBlack', system: 'optThemeSystem', custom: 'optThemeCustom' };
+
 function displaySummary(s) {
   const font = LC_FONTS[s.fontFamily].label || t('optFontSystem');
-  return [font, t(SIZE_KEYS[s.fontSize]), `${t('labelTextShadow')}: ${t(SHADOW_KEYS[s.textShadow])}`].join(' · ');
+  return [font, t(SIZE_KEYS[s.fontSize]), `${t('labelTextShadow')}: ${t(SHADOW_KEYS[s.textShadow])}`,
+    s.theme ? `${t('labelTheme')}: ${t(THEME_KEYS[s.theme])}` : ''].filter(Boolean).join(' · ');
 }
 
 function hint(text, cls) {
@@ -413,13 +420,10 @@ async function importSelected() {
 // ---------------------------------------------------------------------------
 
 (async () => {
-  const stored = await chrome.storage.local.get(['uiLang', 'theme', 'lmstudioUrl']);
+  const stored = await chrome.storage.local.get(['uiLang', 'theme', 'customTheme', 'lmstudioUrl']);
   lang = stored.uiLang || 'en';
   lmBase = (stored.lmstudioUrl || lmBase).trim().replace(/\/+$/, '').replace(/\/v1$/, '');
-  const theme = stored.theme || 'dark';
-  document.documentElement.dataset.theme = theme === 'system'
-    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    : theme;
+  lcApplyTheme(stored.theme || 'dark', stored.customTheme);
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.textContent = t(el.dataset.i18n);
