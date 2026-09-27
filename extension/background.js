@@ -1,3 +1,5 @@
+importScripts('cloud.js'); // online providers, and moving API keys out of chrome.storage.local
+
 let isCapturing = false;
 let isConnected = false;
 let activeTabId = null;
@@ -13,6 +15,10 @@ const stateReady = chrome.storage.local.get(['isCapturing', 'isConnected', 'acti
   captureMode = result.captureMode || captureMode;
   return chrome.offscreen.hasDocument();
 }).then(hasDoc => setBadge(hasDoc));
+
+// API keys saved by older versions in chrome.storage.local move to the extension's private key store.
+chrome.runtime.onInstalled.addListener(() => lcMigrateApiKeys().catch(e => console.warn('API key move failed:', e)));
+chrome.runtime.onStartup.addListener(() => lcMigrateApiKeys().catch(e => console.warn('API key move failed:', e)));
 
 // "ON" on the toolbar icon while captions are running.
 function setBadge(on) {
@@ -187,15 +193,17 @@ async function startCapture(streamId, tabId) {
     await chrome.storage.local.set({ isCapturing: true, activeTabId: tabId });
     
     // 3. Load config from storage
-    const storage = await chrome.storage.local.get(['llmProvider', 'lmstudioUrl', 'ollamaUrl', 'modelName', 'deepseekKey', 'minSilence', 'maxSpeech', 'vadThreshold', 'showBilingual', 'sourceLang', 'targetLang', 'asrEngine', 'saveTranscripts', 'detectSpeakers', 'speakerThreshold', 'qwencloudUrl', 'qwencloudKey', 'promptTemplate']);
+    // (API keys aren't part of this: the offscreen document reads the chosen provider's key itself)
+    const storage = await chrome.storage.local.get(['llmProvider', 'cloudEnabled', 'lmstudioUrl', 'ollamaUrl', 'modelName', 'lmstudioModel', 'minSilence', 'maxSpeech', 'vadThreshold', 'showBilingual', 'sourceLang', 'targetLang', 'asrEngine', 'saveTranscripts', 'detectSpeakers', 'speakerThreshold', 'qwencloudUrl', 'promptTemplate']);
+    // An online provider only while cloud providers are turned on; otherwise LM Studio.
+    const offline = lcIsCloudProvider(storage.llmProvider) && storage.cloudEnabled !== true;
     const config = {
-      llmProvider: storage.llmProvider || 'lmstudio',
+      llmProvider: offline ? 'lmstudio' : (storage.llmProvider || 'lmstudio'),
+      cloudEnabled: storage.cloudEnabled === true,
       lmstudioUrl: storage.lmstudioUrl || 'http://127.0.0.1:1234',
       ollamaUrl: (storage.ollamaUrl === 'http://localhost:11434' || !storage.ollamaUrl) ? 'http://127.0.0.1:11434' : storage.ollamaUrl,
-      modelName: storage.modelName || '',
-      deepseekKey: storage.deepseekKey || '',
-      qwencloudUrl: storage.qwencloudUrl || 'https://maas.qwencloudapi.com',
-      qwencloudKey: storage.qwencloudKey || '',
+      modelName: (offline ? storage.lmstudioModel : storage.modelName) || '',
+      qwencloudUrl: lcQwenEndpoint(storage.qwencloudUrl),
       minSilence: storage.minSilence !== undefined ? storage.minSilence : 0.5,
       maxSpeech: storage.maxSpeech !== undefined ? storage.maxSpeech : 6.0,
       vadThreshold: storage.vadThreshold !== undefined ? storage.vadThreshold : 0.4,

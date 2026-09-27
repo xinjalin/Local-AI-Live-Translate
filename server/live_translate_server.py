@@ -43,7 +43,7 @@ from websockets.exceptions import ConnectionClosed
 
 from qwen_live import QwenLiveTranslate, is_livetranslate
 from prompt_templates import ID_RE as TEMPLATE_ID_RE, TemplateStore
-from translator import LlmConfig, Translator
+from translator import CLOUD_PROVIDERS, LOCAL_PROVIDERS, LlmConfig, Translator, cloud_host, qwen_base
 
 VERSION = "1.7.0"
 SAMPLE_RATE = 16000
@@ -390,14 +390,17 @@ class Session:
         if self.engine != self.asr_engine:
             log.info("%s can't recognise %s speech: using %s", self.asr_engine, self.source_lang, self.engine)
 
+        # An online provider only comes with the extension's cloud setting on (and its key). The key
+        # is kept for this connection only, and only ever sent to that provider (translator.py).
         provider = data.get("llm_provider")
-        self.llm.provider = provider if provider in ("ollama", "qwencloud") else "lmstudio"
-        self.llm.url = (data.get("llm_url") or self.llm.url).rstrip("/")
-        self.llm.model = data.get("model_name", self.llm.model) or ""
+        self.llm.provider = provider if provider in CLOUD_PROVIDERS or provider in LOCAL_PROVIDERS else "lmstudio"
+        key = data.get("api_key")
+        self.llm.api_key = key.strip() if self.llm.cloud and isinstance(key, str) else ""
+        url = str(data.get("llm_url") or self.llm.url).rstrip("/")
+        self.llm.url = qwen_base(url) if self.llm.provider == "qwencloud" else url
+        self.llm.model = str(data.get("model_name", self.llm.model) or "")
         template = str(data.get("prompt_template") or "auto").strip().lower()
         self.llm.template = template if template == "auto" or TEMPLATE_ID_RE.match(template) else "auto"
-        self.llm.deepseek_key = (data.get("deepseek_key") or "").strip()
-        self.llm.api_key = (data.get("qwen_key") or "").strip() if self.llm.provider == "qwencloud" else ""
         self._update_cloud()
 
         wanted = bool(data.get("detect_speakers", False))
@@ -433,10 +436,13 @@ class Session:
         if not self.cloud:
             self.asr.preload(self.engine, self.source_lang)
         template_id, _ = self.translator.templates.resolve(self.llm.template, self.llm.model)
+        # (the key itself is never logged)
+        where = (f"ONLINE {cloud_host(self.llm)}" + ("" if self.llm.api_key else " (no API key)")
+                 if self.llm.cloud else self.llm.url)
         summary = ("Config: ASR=%s source=%s target=%s | LLM=%s %s model=%s template=%s | "
                    "VAD silence=%.1fs max=%.1fs threshold=%.2f | speakers=%s") % (
                    "Qwen Cloud LiveTranslate" if self.cloud else self.engine, self.source_lang, self.target_lang,
-                   self.llm.provider, self.llm.url, self.llm.model or "-",
+                   self.llm.provider, where, self.llm.model or "-",
                    template_id + (" (auto)" if self.llm.template == "auto" else ""),
                    self.min_silence, self.max_speech, self.vad_threshold,
                    f"on ({self.speakers.threshold:.2f})" if self.detect_speakers else "off")
@@ -615,9 +621,10 @@ class Session:
             log.info("  -> [%s %4.0f ms%s | %4.0f ms after speech end] %s", engine, (now - t0) * 1000,
                      f", {stats['tps']:.0f} t/s" if stats else "", (now - t_seg) * 1000, out)
             await self.send({**base, "text_zh": out, "engine": engine, "timing": self.timing_summary(timing)})
-            error = self.translator.cloud_error if self.llm.provider == "qwencloud" else None
+            error = self.translator.cloud_error if self.llm.cloud else None
             if error and error != self.shown_cloud_error:  # once per problem, not on every line
-                await self.send({"event": "subtitle", "text_raw": "", "text_zh": f"⚠ Qwen Cloud: {error}",
+                name = CLOUD_PROVIDERS[self.llm.provider]["name"]
+                await self.send({"event": "subtitle", "text_raw": "", "text_zh": f"⚠ {name}: {error}",
                                  "start": -1, "duration": 3})
             self.shown_cloud_error = error
             self.write_transcript(base["start"], raw, out, base.get("speaker"))
@@ -687,7 +694,7 @@ class Session:
 
     async def run(self):
         await self.send({"event": "server_info", "server": SERVER_ID, "version": VERSION,
-                         "features": ["direct_llm", "pending_subtitles", "qwen_cloud"]
+                         "features": ["direct_llm", "pending_subtitles", "qwen_cloud", "cloud_providers"]
                                      + (["speakers"] if self.embedder.available() else [])})
         workers = [asyncio.create_task(self.asr_worker()), asyncio.create_task(self.translate_worker())]
         try:
@@ -753,10 +760,15 @@ class App:
     def json_response(connection, payload):
         response = connection.respond(HTTPStatus.OK, json.dumps(payload))
         response.headers["Content-Type"] = "application/json"
-        response.headers["Access-Control-Allow-Origin"] = "*"
         return response
 
     def process_request(self, connection, request):
+        # Only the extension (and local tools, which send no Origin) may use the server: a web page
+        # open in the browser could otherwise connect to it, or read what it reports.
+        origin = request.headers.get("Origin")
+        if origin and not origin.startswith("chrome-extension://"):
+            log.warning("Refused a connection from %s (only the extension may connect)", origin[:100])
+            return connection.respond(HTTPStatus.FORBIDDEN, "forbidden\n")
         # Plain HTTP health check, used by the extension popup to detect this server.
         if request.path == "/health":
             return self.json_response(connection, {"status": "ok", "server": SERVER_ID, "version": VERSION,

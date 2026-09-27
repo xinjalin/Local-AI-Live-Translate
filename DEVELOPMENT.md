@@ -20,5 +20,23 @@
 - `extension/logo.svg` is the source for the icons; the popup header embeds a themed copy of it.
 - Transcripts are off by default: the extension sends `save_transcript` in its config message and the
   server only creates a file once a line is written with it switched on. `transcripts/` is git-ignored.
-- **Never commit secrets:** API keys (DeepSeek, Qwen Cloud) are entered in the extension and stay in
-  the browser's extension storage; they are not part of the code, exported profiles or the repository.
+- **Never commit secrets:** API keys for the online providers are entered in the extension; they are
+  not part of the code, exported profiles or the repository.
+- **API keys in the extension** (`extension/cloud.js`): kept in the extension's own IndexedDB
+  (`lc-private` / `apiKeys`), never in `chrome.storage` — `chrome.storage.local` is also readable by
+  `content.js` in every web page, which even gets each change through `storage.onChanged`. The popup
+  saves / deletes keys and uses one to list its provider's models; the offscreen document reads the
+  chosen provider's key itself when it configures the app server, so keys never travel in messages
+  between the extension's parts. Keys saved by older versions in `chrome.storage.local`
+  (`qwencloudKey`, `deepseekKey`) are moved there and deleted (`lcMigrateApiKeys`).
+- **API keys in the server:** they arrive with a session's config (only for an online provider, only
+  while the popup's cloud setting is on) and live for that connection. `translator.py` sends a key
+  only to its provider's fixed HTTPS address (`CLOUD_PROVIDERS`, and `QWEN_HOSTS` for Qwen's
+  selectable endpoints), never to a URL from the config, and keeps it out of the log (`redact`,
+  `LlmConfig.__repr__`). The server refuses connections with a web page's `Origin` (only
+  `chrome-extension://` and local tools without an Origin), so a page open in the browser can't use
+  it or read what it reports.
+- **Online providers:** OpenAI, DeepSeek, Google Gemini and xAI go through their OpenAI-compatible
+  chat APIs, Anthropic through its Messages API. Models differ in the options they take (reasoning
+  effort, temperature): `Translator._with_options` tries the fastest values first and, when a
+  request is refused with HTTP 400 naming an option, the next one, remembering the answer per model.

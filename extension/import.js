@@ -36,16 +36,13 @@ function sanitizeProfile(raw) {
     if (v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v))) profile[key] = Math.min(Math.max(Number(v), min), max);
   };
   if (raw.detectSpeakers !== undefined) profile.detectSpeakers = raw.detectSpeakers === true;
-  // Qwen Cloud (the API key is never exported): an https address and a model name
-  if (raw.qwencloudUrl !== undefined) {
-    let url = 'https://maas.qwencloudapi.com';
-    try {
-      const u = new URL(str(raw.qwencloudUrl));
-      if (u.protocol === 'https:') url = (u.origin + u.pathname).replace(/\/+$/, '');
-    } catch (e) {}
-    profile.qwencloudUrl = url;
+  // Online providers (API keys are never exported, and never taken from a file): the model chosen
+  // for each, and Qwen Cloud's endpoint (one of its own, cloud.js)
+  if (raw.qwencloudUrl !== undefined) profile.qwencloudUrl = lcQwenEndpoint(str(raw.qwencloudUrl));
+  for (const id of Object.keys(LC_CLOUD_PROVIDERS)) {
+    const key = `${id}Model`;
+    if (raw[key] !== undefined) profile[key] = str(raw[key], 120).replace(/[^\w.\-:/@]/g, '');
   }
-  if (raw.qwencloudModel !== undefined) profile.qwencloudModel = str(raw.qwencloudModel, 120).replace(/[^\w.\-:/]/g, '');
   // Prompt template id (a template file missing on this PC falls back to Auto)
   if (raw.promptTemplate !== undefined) {
     const id = str(raw.promptTemplate, 64).toLowerCase();
@@ -69,7 +66,7 @@ function sanitizeProfileBase(raw) {
     }
   };
   return {
-    llmProvider: ['ollama', 'qwencloud'].includes(raw.llmProvider) ? raw.llmProvider : 'lmstudio',
+    llmProvider: raw.llmProvider === 'ollama' || lcIsCloudProvider(raw.llmProvider) ? raw.llmProvider : 'lmstudio',
     lmstudioUrl: origin(raw.lmstudioUrl, 'http://127.0.0.1:1234'),
     ollamaUrl: origin(raw.ollamaUrl, 'http://127.0.0.1:11434'),
     lmstudioModel: str(raw.lmstudioModel, 200),
@@ -193,9 +190,10 @@ function langName(code, special) {
 }
 
 function profileSummary(s, model) {
-  const provider = { ollama: 'Ollama', qwencloud: 'Qwen Cloud' }[s.llmProvider] || 'LM Studio';
-  const modelName = { ollama: s.ollamaModel, qwencloud: s.qwencloudModel }[s.llmProvider] ||
-    (s.llmProvider === 'lmstudio' ? ((model && model.name) || s.lmstudioModel) : '');
+  const cloud = lcIsCloudProvider(s.llmProvider);
+  const provider = cloud ? LC_CLOUD_PROVIDERS[s.llmProvider].name : s.llmProvider === 'ollama' ? 'Ollama' : 'LM Studio';
+  const modelName = s.llmProvider === 'ollama' ? s.ollamaModel : cloud ? s[`${s.llmProvider}Model`] :
+    ((model && model.name) || s.lmstudioModel);
   const langs = `${langName(s.sourceLang, 'auto')} → ${langName(s.targetLang, 'none')}`;
   return [provider, modelName, langs, s.detectSpeakers ? t('labelDetectSpeakers') : ''].filter(Boolean).join(' · ');
 }
@@ -248,8 +246,13 @@ function renderItems() {
     if (item.kind === 'profiles') {
       const s = item.settings;
       body.appendChild(hint(profileSummary(s, item.model)));
-      const server = { ollama: s.ollamaUrl, qwencloud: s.qwencloudUrl }[s.llmProvider] || s.lmstudioUrl;
-      if (!lcIsLocalUrl(server)) body.appendChild(hint(t('importRemoteServer', { host: server }), 'error'));
+      if (lcIsCloudProvider(s.llmProvider)) {
+        // (online: only used while cloud providers are on, with the user's own key)
+        body.appendChild(hint(t('cloudSendNote', { provider: LC_CLOUD_PROVIDERS[s.llmProvider].name }), 'error'));
+      } else {
+        const server = s.llmProvider === 'ollama' ? s.ollamaUrl : s.lmstudioUrl;
+        if (!lcIsLocalUrl(server)) body.appendChild(hint(t('importRemoteServer', { host: server }), 'error'));
+      }
       item.modelEl = document.createElement('div');
       item.modelEl.className = 'import-model';
       body.appendChild(item.modelEl);
