@@ -1,8 +1,46 @@
 # Third-party notices
 
-Local AI Live Translate (author: xinjalin) includes or downloads the following third-party
-components. Each remains under its own license; the full license texts ship alongside them
-(model folders, and the `*.dist-info` folders in `runtime/Lib/site-packages`).
+Local AI Live Translate (author: xinjalin) grew out of an earlier open-source project, and includes
+or downloads the following third-party components. Each remains under its own license; the full
+license texts ship alongside them (model folders, and the `*.dist-info` folders in
+`runtime/Lib/site-packages`).
+
+## Origin: LiveCaption by Studio0808
+
+This project started from **LiveCaption** by begin0808 (Studio0808 Maker Lab / Studio0808 智造實驗室),
+<https://github.com/begin0808/LiveCaption>, a real-time bilingual subtitle system for browser tab audio
+built on Silero VAD, SenseVoice-Small (via sherpa-onnx), Ollama and DeepSeek. Its design shaped this
+one: a Chrome extension that captures the tab's audio in an offscreen document, streams it to a local
+server over a WebSocket, splits speech into sentences with a VAD, recognises them with a local speech
+model, translates them with an LLM and shows the result as subtitles on the page.
+
+The server here is a rewrite, but parts of the extension still come from LiveCaption: the tab-capture
+and WebSocket code in `extension/offscreen.js`, the message handling in `extension/background.js`,
+the basis of the subtitle overlay in `extension/content.js`, and some element and setting names in
+`extension/popup.js`.
+
+LiveCaption's README states that it is licensed under the MIT License (the repository has no separate
+license file, and its README footer reads "Copyright © 2026 Studio0808 Maker Lab. All rights
+reserved."). The MIT License it names:
+
+> Copyright (c) 2026 Studio0808 Maker Lab
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+> associated documentation files (the "Software"), to deal in the Software without restriction,
+> including without limitation the rights to use, copy, modify, merge, publish, distribute,
+> sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all copies or
+> substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+> NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+> NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+> OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+> CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Thank you to begin0808 for the original project and the idea.
 
 ## Models (`models/`)
 
