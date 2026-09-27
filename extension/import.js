@@ -115,6 +115,7 @@ function sanitizeModel(raw, key) {
   return {
     key,
     name: str(raw.name, 120) || key,
+    publisher: /^[\w.-]{1,96}$/.test(raw.publisher || '') ? raw.publisher : '',
     quantization: str(raw.quantization, 24),
     sizeBytes: Number.isFinite(size) && size > 0 ? size : 0,
     download: lcValidDownloadSource(raw.download) ? raw.download : null
@@ -292,11 +293,15 @@ function renderMissing(item, state = {}) {
     el.appendChild(hint(t('importLaterNote')));
     return;
   }
-  if (!meta.download) {
-    el.appendChild(hint(t('downloadNoSource')));
+  if (state.searching) {
+    el.appendChild(hint(t('downloadSearching')));
     return;
   }
-  el.appendChild(hint(t('importDownloadFrom', { source: meta.download.replace('https://', '') })));
+  if (!meta.download && (state.notFound || !lcCanFindModel(meta))) {
+    el.appendChild(hint(t(state.notFound ? 'downloadNotFound' : 'downloadNoSource')));
+    return;
+  }
+  if (meta.download) el.appendChild(hint(t('importDownloadFrom', { source: meta.download.replace('https://', '') })));
 
   if (state.progress) {
     const p = state.progress;
@@ -317,7 +322,8 @@ function renderMissing(item, state = {}) {
   const download = document.createElement('button');
   download.type = 'button';
   download.className = 'small-btn primary';
-  download.textContent = size ? t('btnDownloadModel', { size }) : t('btnDownloadModelNoSize');
+  download.textContent = !meta.download ? t('btnFindDownload')
+    : size ? t('btnDownloadModel', { size }) : t('btnDownloadModelNoSize');
   download.addEventListener('click', () => downloadModel(item, meta));
   const later = document.createElement('button');
   later.type = 'button';
@@ -329,6 +335,18 @@ function renderMissing(item, state = {}) {
 }
 
 async function downloadModel(item, meta) {
+  if (!meta.download) {
+    // Where it comes from wasn't exported: look it up on Hugging Face, and keep the answer with the
+    // profile so its later downloads (Model tab) know it too.
+    renderMissing(item, { searching: true });
+    const found = await lcFindModelSource(meta);
+    if (!found) {
+      renderMissing(item, { notFound: true });
+      return;
+    }
+    meta = { ...meta, download: found.download, sizeBytes: meta.sizeBytes || found.sizeBytes };
+    item.model = meta;
+  }
   renderMissing(item, { progress: { status: 'starting', downloaded: 0, total: meta.sizeBytes } });
   let res;
   try {
