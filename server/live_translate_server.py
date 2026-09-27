@@ -42,6 +42,7 @@ from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed
 
 from qwen_live import QwenLiveTranslate, is_livetranslate
+from prompt_templates import ID_RE as TEMPLATE_ID_RE, TemplateStore
 from translator import LlmConfig, Translator
 
 VERSION = "1.4.0"
@@ -54,6 +55,8 @@ SERVER_ID = "local-ai-live-translate"  # reported by /health; the extension uses
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_DIR = ROOT / "models"
+# The user's own prompt templates (JSON files; see templates/README.md)
+TEMPLATE_DIR = ROOT / "templates"
 TRANSCRIPT_DIR = ROOT / "transcripts"
 VAD_MODEL = MODEL_DIR / "silero_vad.onnx"
 SENSE_VOICE_DIR = MODEL_DIR / "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17"
@@ -391,6 +394,8 @@ class Session:
         self.llm.provider = provider if provider in ("ollama", "qwencloud") else "lmstudio"
         self.llm.url = (data.get("llm_url") or self.llm.url).rstrip("/")
         self.llm.model = data.get("model_name", self.llm.model) or ""
+        template = str(data.get("prompt_template") or "auto").strip().lower()
+        self.llm.template = template if template == "auto" or TEMPLATE_ID_RE.match(template) else "auto"
         self.llm.deepseek_key = (data.get("deepseek_key") or "").strip()
         self.llm.api_key = (data.get("qwen_key") or "").strip() if self.llm.provider == "qwencloud" else ""
         self._update_cloud()
@@ -427,11 +432,13 @@ class Session:
 
         if not self.cloud:
             self.asr.preload(self.engine, self.source_lang)
-        summary = ("Config: ASR=%s source=%s target=%s | LLM=%s %s model=%s | "
+        template_id, _ = self.translator.templates.resolve(self.llm.template, self.llm.model)
+        summary = ("Config: ASR=%s source=%s target=%s | LLM=%s %s model=%s template=%s | "
                    "VAD silence=%.1fs max=%.1fs threshold=%.2f | speakers=%s") % (
                    "Qwen Cloud LiveTranslate" if self.cloud else self.engine, self.source_lang, self.target_lang,
-                   self.llm.provider, self.llm.url,
-                   self.llm.model or "-", self.min_silence, self.max_speech, self.vad_threshold,
+                   self.llm.provider, self.llm.url, self.llm.model or "-",
+                   template_id + (" (auto)" if self.llm.template == "auto" else ""),
+                   self.min_silence, self.max_speech, self.vad_threshold,
                    f"on ({self.speakers.threshold:.2f})" if self.detect_speakers else "off")
         if summary != self.config_summary:  # (a repeat of the same config isn't logged again)
             self.config_summary = summary
@@ -583,19 +590,23 @@ class Session:
                 log.info("[ASR %4.0f ms] (%s) %s%s", asr_ms, lang or "?", who, raw)
                 # Show the original right away; the translation replaces it (same `start`).
                 await self.send({**base, "text_zh": "", "pending": True})
-                self.translate_queue.put_nowait((base, raw, target, t_seg, timing))
+                self.translate_queue.put_nowait((base, raw, target, lang, t_seg, timing))
 
     async def translate_worker(self):
         # One line at a time, in order, so each translation can use the previous lines as context.
         while True:
-            base, raw, target, t_seg, timing = await self.translate_queue.get()
+            base, raw, target, lang, t_seg, timing = await self.translate_queue.get()
             timing["llm_start"] = time.time()
             t0 = time.perf_counter()
             try:
-                out, engine, stats = await self.translator.translate(raw, target, self.llm)
+                out, engine, stats = await self.translator.translate(raw, target, self.llm, lang)
             except Exception:
                 log.exception("Translation failed")
                 out, engine, stats = raw, "untranslated", None
+            if target in self.cc and engine not in ("passthrough", "untranslated"):
+                # Chinese subtitles in the chosen script whatever the model wrote: MiLMMT's prompt
+                # format, for one, has no room for a "Traditional characters only" rule (面包 -> 麵包).
+                out = self.cc[target].convert(out)
             now = time.perf_counter()
             timing["translated"] = time.time()
             timing["engine"] = engine
@@ -734,7 +745,7 @@ class App:
     def __init__(self):
         self.asr = Asr(args.threads)
         self.embedder = SpeakerEmbedder(args.speaker_threads)
-        self.translator = Translator()
+        self.translator = Translator(TemplateStore(TEMPLATE_DIR))
         self.cc = {"zh-TW": opencc.OpenCC("s2twp"), "zh-CN": opencc.OpenCC("t2s"), "yue": opencc.OpenCC("s2hk")}
         self.connections = 0
 
@@ -754,6 +765,9 @@ class App:
                                                    "engines": available_engines()})
         if request.path == "/model-sources":
             return self.json_response(connection, {"sources": lmstudio_model_sources()})
+        if request.path == "/templates":
+            # Prompt templates for the popup's menu (built-in + the user's templates/ folder)
+            return self.json_response(connection, {"templates": self.translator.templates.listing()})
         if request.path != "/stream":
             return connection.respond(HTTPStatus.NOT_FOUND, "not found\n")
         return None

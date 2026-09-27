@@ -137,8 +137,12 @@ def main():
         shutil.copy2(ROOT / "tools" / f, out / "tools" / f)
 
     copytree(ROOT / "extension", out / "extension")
+    # Prompt templates: the app's own (editable), the format guide and an example to copy
+    (out / "templates").mkdir()
+    for f in ("README.md", "_example.json", "generic.json", "hy-mt.json", "milmmt.json"):
+        shutil.copy2(ROOT / "templates" / f, out / "templates" / f)
     (out / "server").mkdir()
-    for f in ("live_translate_server.py", "translator.py", "qwen_live.py", "requirements.txt"):
+    for f in ("live_translate_server.py", "translator.py", "prompt_templates.py", "qwen_live.py", "requirements.txt"):
         shutil.copy2(ROOT / "server" / f, out / "server" / f)
     log("  extension + server copied")
 

@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 
 import httpx
 
+from prompt_templates import BUILTIN, GENERIC_SYSTEM, TemplateStore, build_messages
+
 log = logging.getLogger("translator")
 
 LANG_NAMES = {
@@ -26,20 +28,12 @@ LANG_NAMES = {
     "bn": "Bengali",
 }
 GOOGLE_CODES = {"zh-TW": "zh-TW", "zh-CN": "zh-CN", "fil": "tl"}
+# Source language names for templates' {source} (the speech engine may report "zh" or "yue").
+SOURCE_NAMES = {**LANG_NAMES, "zh": "Chinese", "yue": "Cantonese"}
 
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 # "(upbeat music)", "[MUSIC PLAYING]", "♪♪" ... nothing to translate.
 NON_SPEECH_RE = re.compile(r"^\s*(?:[\(\[（【][^\)\]）】]*[\)\]）】]|[♪\s.…!?！？,，、。-]+)\s*$")
-
-GENERIC_SYSTEM = (
-    "You are a professional subtitle translator for live video. Translate each subtitle line the user "
-    "sends into natural, concise {target}. The lines come from automatic speech recognition, so they can "
-    "contain misheard words; use the earlier lines of the conversation to infer the intended meaning and "
-    "keep names and terms consistent. Output only the {target} translation of the latest line, as a single "
-    "line of plain text, with no notes, quotes, romanization, or original text.{extra}"
-)
-ZH_TW_EXTRA = " Use Traditional Chinese characters with Taiwan usage only; never output Simplified Chinese."
-
 
 @dataclass
 class LlmConfig:
@@ -51,6 +45,7 @@ class LlmConfig:
     context_lines: int = 4                # previous subtitle lines sent as context
     context_reset: float = 90.0           # seconds of silence before the context is forgotten
     online_fallback: bool = True          # fall back to Google Translate if everything local fails
+    template: str = "auto"                # prompt template id (prompt_templates.py), "auto": by model
 
 
 @dataclass
@@ -93,35 +88,10 @@ def clean_output(text):
     return collapse_repeats(lines[0]) if lines else ""
 
 
-def is_hymt(model):
-    return re.search(r"hy-?mt|hunyuan-?mt", model or "", re.IGNORECASE) is not None
-
-
-def build_messages(model, target, text, context, zh_tw):
-    """Return (messages, sampling params) for one subtitle line."""
-    if is_hymt(model):
-        # Tencent Hy-MT has no system prompt; it uses fixed templates (see its model card).
-        if context:
-            background = "\n".join(f"{src} => {out}" for src, out in context)
-            content = (f"[Background Information]\n{background}\n\n"
-                       f"Please translate the following text into {target}, taking the provided background "
-                       f"information into consideration. Only output the translated result.\n\n[Source Text]\n{text}")
-        else:
-            content = (f"Translate the following text into {target}. Note that you should only output the "
-                       f"translated result without any additional explanation:\n\n{text}")
-        return [{"role": "user", "content": content}], {"temperature": 0.7, "top_p": 0.6, "top_k": 20,
-                                                          "repeat_penalty": 1.05}
-
-    messages = [{"role": "system", "content": GENERIC_SYSTEM.format(target=target, extra=ZH_TW_EXTRA if zh_tw else "")}]
-    for src, out in context:
-        messages.append({"role": "user", "content": src})
-        messages.append({"role": "assistant", "content": out})
-    messages.append({"role": "user", "content": text})
-    return messages, {"temperature": 0.2}
-
-
 class Translator:
-    def __init__(self):
+    def __init__(self, templates=None):
+        # Prompt templates (built-in, plus the user's when given a TemplateStore)
+        self.templates = templates or TemplateStore("")
         # Last Qwen Cloud error (e.g. a wrong API key), shown once on the page; None when working
         self.cloud_error = None
         # Local servers are plain HTTP; one pooled client, kept alive between subtitles.
@@ -146,8 +116,10 @@ class Translator:
         h.lines.append((source, translation))
         h.last = time.monotonic()
 
-    async def translate(self, text, target_code, cfg: LlmConfig):
+    async def translate(self, text, target_code, cfg: LlmConfig, source_code=None):
         """Translate one subtitle line. Returns (translation, engine_name, stats).
+
+        source_code: the line's language if known (for templates that name it, e.g. MiLMMT's).
 
         stats (local LLM only, else None): {"tokens": generated tokens, "tps": generation speed in
         tokens per second (as LM Studio / Ollama report it), "prompt": prompt processing ms}.
@@ -159,7 +131,9 @@ class Translator:
         if cfg.model and time.monotonic() >= self._local_down_until:
             key = (cfg.provider, cfg.url, cfg.model, target_code)
             context = self._context(key, cfg) if cfg.context_lines > 0 else []
-            messages, sampling = build_messages(cfg.model, target, text, context, target_code == "zh-TW")
+            _, template = self.templates.resolve(cfg.template, cfg.model)
+            source = SOURCE_NAMES.get(source_code or "", "the original language")
+            messages, sampling = build_messages(template, target, target_code, text, context, source)
             max_tokens = min(max(3 * len(text) + 24, 48), 256)
             try:
                 if cfg.provider == "ollama":
@@ -282,7 +256,7 @@ class Translator:
             "https://api.deepseek.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {cfg.deepseek_key}"},
             json={"model": "deepseek-chat", "temperature": 0.3, "messages": [
-                {"role": "system", "content": GENERIC_SYSTEM.format(target=target, extra="")},
+                {"role": "system", "content": GENERIC_SYSTEM.replace("{target}", target).replace("{target_rules}", "")},
                 {"role": "user", "content": text}]},
             timeout=10.0)
         r.raise_for_status()

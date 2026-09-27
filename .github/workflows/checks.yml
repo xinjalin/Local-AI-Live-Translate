@@ -33,7 +33,7 @@ jobs:
         run: |
           python - <<'EOF'
           import glob, json
-          files = glob.glob("extension/**/*.json", recursive=True) + ["tools/dependencies.json"]
+          files = glob.glob("extension/**/*.json", recursive=True) + ["tools/dependencies.json"] + glob.glob("templates/*.json")
           for f in files:
               json.load(open(f, encoding="utf-8"))
           print(f"{len(files)} JSON files OK")
@@ -51,6 +51,20 @@ jobs:
 
       - name: Python syntax
         run: python -W error -m py_compile server/*.py tools/*.py
+
+      - name: App prompt templates match their built-in copies
+        run: |
+          python - <<'EOF'
+          import json, sys
+          sys.path.insert(0, "server")
+          from prompt_templates import BUILTIN, parse_template
+          for tid, builtin in BUILTIN.items():
+              loaded = parse_template(json.load(open(f"templates/{tid}.json", encoding="utf-8")))
+              for key in ("system", "user", "user_with_context", "sampling"):
+                  assert loaded.get(key) == builtin.get(key), f"templates/{tid}.json: {key} differs from prompt_templates.BUILTIN"
+              assert loaded["match"] == builtin.get("match", []) and loaded["history"] == builtin.get("history", False), tid
+          print("templates OK:", ", ".join(BUILTIN))
+          EOF
 
   secrets:
     name: Secret scan
