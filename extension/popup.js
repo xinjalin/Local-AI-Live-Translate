@@ -196,7 +196,9 @@ class LanguagePicker {
     const label = document.querySelector(`label[for="${select.id}"]`);
     if (label) {
       label.htmlFor = this.trigger.id;
-      this.trigger.setAttribute('aria-labelledby', label.id || (label.id = `${select.id}-label`));
+      // Named by the label's text itself (the label may also hold an icon, e.g. the UI Language globe).
+      const text = label.querySelector('[data-i18n]') || label;
+      this.trigger.setAttribute('aria-labelledby', text.id || (text.id = `${select.id}-label`));
     }
 
     // Keep the button in step with the select however its value changes: set from code (profiles,

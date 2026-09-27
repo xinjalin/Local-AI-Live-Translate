@@ -503,7 +503,7 @@
 
 body {
   margin: 0;
-  width: 360px;
+  width: 400px;
   color-scheme: var(--scheme-page);
   background: var(--page-glow), var(--page-bg);
   background-attachment: fixed;
@@ -535,9 +535,14 @@ body {
 }
 
 .brand {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.brand > div {
   min-width: 0;
 }
 
@@ -562,7 +567,6 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 210px;
 }
 
 .chip {
@@ -1134,10 +1138,12 @@ body {
 
 /* Language pickers: a menu button over a hidden native select */
 
-.lang-native {
+select.lang-native {
   position: absolute;
   width: 1px;
   height: 1px;
+  padding: 0;
+  border: 0;
   opacity: 0;
   pointer-events: none;
 }
@@ -1287,11 +1293,13 @@ body {
     appearance: base-select;
   }
 
+  /* One line, ending in "…" before the chevron when the option's text is too long */
   select:not(.lang-native) {
-    display: flex;
-    align-items: center;
+    display: block;
+    line-height: 36px;
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* The chevron comes from the field's background image */
@@ -1300,7 +1308,7 @@ body {
   }
 
   select:not(.lang-native)::picker(select) {
-    min-width: max(anchor-size(width), 200px);
+    min-width: max(anchor-size(width), 260px);
     max-height: min(340px, 70vh);
     margin-block: 6px;
     padding: 6px;
@@ -1312,10 +1320,13 @@ body {
     scrollbar-width: thin;
   }
 
+  /* Same rows as the language menus (.lang-option). line-height is reset because the options would
+     otherwise inherit the button's 36px line height and come out about 50px tall. */
   select:not(.lang-native) option {
     position: relative;
     display: block;
     padding: 7px 28px 7px 10px;
+    line-height: normal;
     border-radius: 9px;
     background: none;
     color: var(--menu-text);
@@ -1566,6 +1577,41 @@ body {
 }
 
 /* Saved configs (profiles / display configs) */
+
+/* Config panels: title with the save / update / delete buttons on the right, full-width dropdown below */
+.config-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+}
+
+.config-actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+
+.config-actions .icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+
+.config-actions .icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Small icon before a label (the globe on UI Language), not changing the line height */
+.label-icon {
+  width: 12px;
+  height: 12px;
+  margin-right: 5px;
+  vertical-align: -1px;
+  opacity: 0.85;
+}
 
 .config-row,
 .config-name-row {
