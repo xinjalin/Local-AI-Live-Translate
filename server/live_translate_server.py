@@ -324,6 +324,7 @@ class Session:
         self.asr = asr
         self.embedder = embedder
         self.detect_speakers = False
+        self.config_summary = ""
         self.speakers = SpeakerTracker()
         self.translator = translator
         self.cc = cc
@@ -410,12 +411,15 @@ class Session:
 
         if not self.cloud:
             self.asr.preload(self.engine, self.source_lang)
-        log.info("Config: ASR=%s source=%s target=%s | LLM=%s %s model=%s | "
-                 "VAD silence=%.1fs max=%.1fs threshold=%.2f | speakers=%s",
-                 "Qwen Cloud LiveTranslate" if self.cloud else self.engine, self.source_lang, self.target_lang,
-                 self.llm.provider, self.llm.url,
-                 self.llm.model or "-", self.min_silence, self.max_speech, self.vad_threshold,
-                 f"on ({self.speakers.threshold:.2f})" if self.detect_speakers else "off")
+        summary = ("Config: ASR=%s source=%s target=%s | LLM=%s %s model=%s | "
+                   "VAD silence=%.1fs max=%.1fs threshold=%.2f | speakers=%s") % (
+                   "Qwen Cloud LiveTranslate" if self.cloud else self.engine, self.source_lang, self.target_lang,
+                   self.llm.provider, self.llm.url,
+                   self.llm.model or "-", self.min_silence, self.max_speech, self.vad_threshold,
+                   f"on ({self.speakers.threshold:.2f})" if self.detect_speakers else "off")
+        if summary != self.config_summary:  # (a repeat of the same config isn't logged again)
+            self.config_summary = summary
+            log.info("%s", summary)
 
     # -- Qwen Cloud LiveTranslate -------------------------------------------
 
