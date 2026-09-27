@@ -891,6 +891,8 @@ function showProviderFields() {
   resumeModelDownload();
 })();
 
+let lastSubtitleMode = null; // subtitle language/bilingual mode last sent to the page
+
 const saveSettings = () => {
   const provider = llmProviderInput.value;
   if (provider === 'qwencloud') providerModels.qwencloud = qwenModelInput.value.trim();
@@ -935,6 +937,9 @@ const saveSettings = () => {
   chrome.runtime.sendMessage({ type: 'update-config', config });
   refreshConfigStates();
 
+  const mode = `${config.targetLang}|${config.showBilingual}`;
+  if (mode === lastSubtitleMode) return;
+  lastSubtitleMode = mode;
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs && tabs[0]) {
       chrome.tabs.sendMessage(tabs[0].id, {
@@ -945,6 +950,23 @@ const saveSettings = () => {
     }
   });
 };
+
+// Colour pickers and sliders fire an input event for every step of a drag. The preview follows
+// every step; the settings (and so the subtitles on the page) at most every 100 ms while
+// dragging, and once more with the final value when the picker closes or the slider is let go.
+let dragSaveTimer = null;
+function saveWhileDragging() {
+  if (dragSaveTimer) return;
+  dragSaveTimer = setTimeout(() => {
+    dragSaveTimer = null;
+    saveSettings();
+  }, 100);
+}
+function saveDragEnd() {
+  clearTimeout(dragSaveTimer);
+  dragSaveTimer = null;
+  saveSettings();
+}
 
 llmProviderInput.addEventListener('change', () => {
   showProviderFields();
@@ -1029,9 +1051,10 @@ detectSpeakersInput.addEventListener('change', () => {
 for (const input of [bgColorInput, textColorInput, shadowColorInput, outlineColorInput, bgOpacityInput, originalScaleInput, outlineWidthInput]) {
   input.addEventListener('input', () => {
     updateRangeLabels();
-    saveSettings();
     updatePreview();
+    saveWhileDragging();
   });
+  input.addEventListener('change', saveDragEnd);
 }
 for (const input of [fontSizeInput, fontFamilyInput, fontWeightInput, textShadowInput, originalPlacementInput]) {
   input.addEventListener('change', () => {
@@ -1048,8 +1071,9 @@ subtitlePositionInput.addEventListener('change', () => {
 for (const input of [minSilenceInput, maxSpeechInput, vadThresholdInput, speakerThresholdInput, holdTimeInput, minDisplayInput]) {
   input.addEventListener('input', () => {
     updateRangeLabels();
-    saveSettings();
+    saveWhileDragging();
   });
+  input.addEventListener('change', saveDragEnd);
 }
 
 // Dragging the subtitles on the page switches the position to "where I last dragged it"

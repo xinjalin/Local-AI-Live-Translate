@@ -6,6 +6,8 @@ let ws = null;
 let config = {};
 let reconnectTimer = null;
 let reconnectDelay = 1000;
+let sentConfig = '';
+let configTimer = null;
 
 // Must not be an async function: a listener that returns a Promise counts as a
 // reply in Chrome, so it would answer messages meant for the background worker
@@ -20,7 +22,7 @@ chrome.runtime.onMessage.addListener((message) => {
 
   if (message.type === 'update-config') {
     config = message.config;
-    sendConfigToBackend();
+    queueConfig();
   }
 });
 
@@ -158,26 +160,42 @@ function connectWebSocket() {
   };
 }
 
+// The popup sends its settings on every change, including the subtitle look (dozens of times a
+// second while a colour or slider is dragged). The server only gets its own settings, and only
+// once they have changed and stopped changing.
+function queueConfig() {
+  clearTimeout(configTimer);
+  configTimer = null;
+  if (JSON.stringify(backendConfig()) !== sentConfig) configTimer = setTimeout(sendConfigToBackend, 300);
+}
+
 function sendConfigToBackend() {
+  clearTimeout(configTimer);
+  configTimer = null;
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({
-      event: 'config',
-      llm_provider: ['ollama', 'qwencloud'].includes(config.llmProvider) ? config.llmProvider : 'lmstudio',
-      llm_url: { ollama: config.ollamaUrl, qwencloud: config.qwencloudUrl }[config.llmProvider] || config.lmstudioUrl,
-      qwen_key: config.llmProvider === 'qwencloud' ? config.qwencloudKey : '',
-      model_name: config.modelName,
-      deepseek_key: config.deepseekKey,
-      min_silence: config.minSilence,
-      max_speech: config.maxSpeech,
-      vad_threshold: config.vadThreshold !== undefined ? config.vadThreshold : 0.4,
-      source_lang: config.sourceLang,
-      target_lang: config.targetLang,
-      asr_engine: config.asrEngine,
-      save_transcript: config.saveTranscripts === true,
-      detect_speakers: config.detectSpeakers === true,
-      speaker_threshold: config.speakerThreshold !== undefined ? config.speakerThreshold : 0.5
-    }));
+    sentConfig = JSON.stringify(backendConfig());
+    ws.send(sentConfig);
   }
+}
+
+function backendConfig() {
+  return {
+    event: 'config',
+    llm_provider: ['ollama', 'qwencloud'].includes(config.llmProvider) ? config.llmProvider : 'lmstudio',
+    llm_url: { ollama: config.ollamaUrl, qwencloud: config.qwencloudUrl }[config.llmProvider] || config.lmstudioUrl,
+    qwen_key: config.llmProvider === 'qwencloud' ? config.qwencloudKey : '',
+    model_name: config.modelName,
+    deepseek_key: config.deepseekKey,
+    min_silence: config.minSilence,
+    max_speech: config.maxSpeech,
+    vad_threshold: config.vadThreshold !== undefined ? config.vadThreshold : 0.4,
+    source_lang: config.sourceLang,
+    target_lang: config.targetLang,
+    asr_engine: config.asrEngine,
+    save_transcript: config.saveTranscripts === true,
+    detect_speakers: config.detectSpeakers === true,
+    speaker_threshold: config.speakerThreshold !== undefined ? config.speakerThreshold : 0.5
+  };
 }
 
 // Ensure cleanup on window unload

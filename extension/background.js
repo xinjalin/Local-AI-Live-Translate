@@ -21,7 +21,9 @@ function setBadge(on) {
 }
 
 function setCaptureMode(targetLang, showBilingual) {
-  captureMode = { targetLang: targetLang || 'none', showBilingual: showBilingual !== false };
+  const mode = { targetLang: targetLang || 'none', showBilingual: showBilingual !== false };
+  if (mode.targetLang === captureMode.targetLang && mode.showBilingual === captureMode.showBilingual) return;
+  captureMode = mode;
   chrome.storage.local.set({ captureMode });
 }
 
@@ -87,6 +89,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Forward config updates to offscreen if active
     chrome.offscreen.hasDocument().then(hasDoc => {
       if (hasDoc) {
+        const before = JSON.stringify(captureMode);
         setCaptureMode(message.config.targetLang, message.config.showBilingual);
         chrome.runtime.sendMessage({
           type: 'update-config',
@@ -94,8 +97,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           config: message.config
         });
         
+        // (most changes are to the subtitle look, which the overlay picks up from storage)
         const tabId = activeTabId;
-        if (tabId) {
+        if (tabId && JSON.stringify(captureMode) !== before) {
           chrome.tabs.sendMessage(tabId, {
             type: 'update-subtitle-mode',
             targetLang: message.config.targetLang,
