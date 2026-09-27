@@ -45,7 +45,7 @@ appearing on the page:
 The server window logs each line as it's recognised (with the language and speaker) and translated
 (with the model's time and speed):
 
-<img src="docs/images/server-console.png" alt="Server console: SenseVoice recognising Japanese, Korean and Chinese speech from three speakers, and Hy-MT2-7B translating each line into English in 0.3 to 0.6 s at 65 t/s">
+<img src="docs/images/server-console.png" alt="Server console: SenseVoice recognising Japanese, Korean and Chinese speech from three speakers, and Hy-MT2-7B translating each line into English in 0.4 to 0.7 s at 63 to 65 t/s">
 
 The numbers in these screenshots come from a real run on an RX 9070 XT, using the SenseVoice test clips.
 
