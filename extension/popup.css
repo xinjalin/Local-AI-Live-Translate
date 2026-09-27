@@ -1046,7 +1046,7 @@ body {
 }
 
 /* Groups of fields inside a panel keep the panel's spacing */
-#group-qwencloud:not([hidden]) {
+#group-cloud:not([hidden]) {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1896,4 +1896,89 @@ select.lang-native {
   text-align: center;
   font-size: 10.5px;
   color: var(--text-muted);
+}
+
+/* Online AI providers ------------------------------------------------------ */
+
+/* (the cloud switch is the panel's first row: no divider above it) */
+.switch-row.first {
+  padding-top: 0;
+  border-top: none;
+}
+
+/* What turning cloud providers on means, and the online notice under a chosen provider */
+.cloud-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  color: var(--panel-text);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.cloud-warning[hidden] {
+  display: none;
+}
+
+.cloud-warning.compact {
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.cloud-confirm-row {
+  display: flex;
+  gap: 8px;
+}
+
+.small-btn.warn {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+#cloud-key-status a {
+  color: var(--accent);
+}
+
+/* Saved API keys: provider, last characters, delete */
+.key-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
+  font-size: 12px;
+}
+
+.key-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--field-text);
+}
+
+.key-tail {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  color: var(--panel-muted);
+}
+
+.link-btn.danger {
+  color: var(--danger);
+}
+
+.footer.cloud-on {
+  color: var(--warning);
 }

@@ -5,8 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Real-time translated subtitles for any video or stream playing in Chrome: speech recognition and
-translation both run on your own PC, using a local LLM served by LM Studio (or Ollama, or optionally
-Qwen Cloud).
+translation both run on your own PC, using a local LLM served by LM Studio (or Ollama). Online AI
+providers — Qwen, OpenAI, Anthropic, DeepSeek, Google Gemini and xAI Grok — can be turned on as an
+option.
 
 **Author:** xinjalin <br>
 **Co-Author:** Claude Opus 5.5 <br>
@@ -169,9 +170,26 @@ Turkish); differences of a point or two are within noise.
   (tokens, speed and prompt processing) and delivery, plus the average of the last 10 lines. The
   numbers are clock readings taken along the way and sent with each subtitle, so measuring them
   doesn't slow anything down (tested: same latency as before, within a few ms).
-- **Qwen Cloud (online, needs an API key from [home.qwencloud.com/api-keys](https://home.qwencloud.com/api-keys)):**
-  pick *Qwen Cloud* as the LLM Server on the Model tab, paste your key, and choose a model — the list
-  shows the models on your account, and you can type any model name.
+- **Cloud AI providers (online, optional, off by default):** turn on *Cloud AI providers* at the top
+  of the Model tab. It says first what that means: while an online provider is the LLM server, the
+  text of everything captured is sent to it, handled under its privacy terms and billed to your API
+  key. Once on, the *LLM Server* menu also lists **Qwen Cloud, OpenAI, Anthropic Claude, DeepSeek,
+  Google Gemini and xAI Grok**; turned off, they disappear from the menu and translation goes back
+  to LM Studio. Pick one, paste your API key (the *Get a key* link opens the provider's key page),
+  and choose a model: the list shows the models on your account, and you can type any model name.
+  Speech is still recognised on this PC; only the text of each line (with the previous lines as
+  context) goes to the provider. A wrong key, a used-up quota or another provider error shows as a ⚠
+  line in the subtitles. Profiles remember the provider and model (never the key); a profile with an
+  online provider uses LM Studio while cloud providers are off, and says so.
+- **API keys** are kept in the extension's own private storage in this browser on this PC — not
+  where web pages, or the extension's script inside them, can read — and only ever sent to their own
+  provider: through the app server on this PC, which sends a key only to that provider's official
+  HTTPS address. The popup never shows a saved key (only its last four characters), and keys are
+  never in profiles, exports, transcripts or the server's log. **Saved API Keys** (Model tab) lists
+  them: delete one, or **Clear all API keys** (press twice). Uninstalling the extension also deletes
+  them. Keys are stored the way browsers store extension data — not encrypted — so anyone who can use
+  your Windows account could read them; clear them on a shared PC.
+- **Qwen Cloud** specifics (key from [home.qwencloud.com/api-keys](https://home.qwencloud.com/api-keys)):
   - *LiveTranslate models* (`qwen3.8-livetranslate-flash-realtime`, `qwen3.5-…`): the tab's audio is
     streamed to Qwen Cloud, which detects, recognises and translates the speech itself (simultaneous
     interpretation, 60 input languages; Qwen quotes ~2.3 s average lag). The subtitle grows as the
@@ -181,8 +199,8 @@ Turkish); differences of a point or two are within noise.
   - *Any other model* (e.g. `qwen-mt-flash`, `qwen-plus`): speech is recognised on this PC as usual and
     Qwen Cloud translates the text through its OpenAI-compatible API (Qwen-MT models get their
     translation options automatically).
-  - A wrong key or other Qwen error shows as a ⚠ line in the subtitles. The *API URL* defaults to
-    `https://maas.qwencloudapi.com`; other Qwen / DashScope endpoints work too.
+  - *Endpoint*: Qwen Cloud (`maas.qwencloudapi.com`, the default) or Alibaba Cloud Model Studio
+    (International, US or China).
 - **Search settings:** type in the search box under the start button (or press `/`) to find any
   setting. It's forgiving about typos and abbreviations ("opacty", "fnt sz", "ctx") and knows a few
   synonyms ("transparency", "hotkey", "noise"). Pick a suggestion with the mouse or arrow keys + Enter
@@ -201,7 +219,7 @@ Turkish); differences of a point or two are within noise.
   the speech detection tuning (Tuning tab: detection threshold, silence threshold, max speech
   duration, speaker separation) — under a name
   (e.g. "Anime JP → EN"), and switch between them from the dropdown. Choosing a profile applies it at
-  once and loads its model into LM Studio. The DeepSeek key is never stored in profiles.
+  once and loads its model into LM Studio. API keys are never stored in profiles.
 - **Display configs** (Display tab): save the subtitle look, layout and timing (the *Subtitle
   Timing* settings on the Tuning tab) and the popup's theme (with your Custom theme's colours)
   separately from profiles, so any profile can be combined with any display style. Display configs
@@ -322,11 +340,14 @@ runtime\python.exe server\live_translate_server.py --threads 8 --preroll 0.2
 
 ## Privacy note
 
-Speech recognition and translation run locally. If the local LLM can't be reached, a line falls back
-to DeepSeek (only if you entered a key) and then to Google Translate, which are online services.
-Choosing **Qwen Cloud** as the LLM server is opt-in and online: the recognised text — or, with a
-LiveTranslate model, the tab's audio — is sent to Qwen Cloud. The API key stays in the browser's
-extension storage and is never put in exported profiles.
+Speech recognition and translation run locally, and nothing is sent online unless you turn on
+**Cloud AI providers** and pick an online provider as the LLM server. There is no online fallback:
+if the local LLM can't be reached, a line is shown untranslated. With an online provider picked,
+the recognised text — or, with a Qwen LiveTranslate model, the tab's audio — is sent to that
+provider under its terms; the popup's footer says *Cloud AI providers on* while the setting is on.
+API keys are kept as described above and can be cleared at any time (Model tab → Saved API Keys).
+The app server only accepts connections from the extension, so web pages open in the browser can't
+use it.
 
 ## Releases and development
 

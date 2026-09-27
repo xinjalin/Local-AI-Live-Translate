@@ -8,10 +8,10 @@ const ollamaUrlInput = document.getElementById('ollama-url');
 const modelNameInput = document.getElementById('model-name');
 const refreshModelsBtn = document.getElementById('refresh-models');
 const modelStatusEl = document.getElementById('model-status');
-const deepseekKeyInput = document.getElementById('deepseek-key');
 const qwenUrlInput = document.getElementById('qwencloud-url');
-const qwenKeyInput = document.getElementById('qwencloud-key');
-const qwenModelInput = document.getElementById('qwencloud-model');
+const cloudEnabledInput = document.getElementById('cloud-enabled');
+const cloudKeyInput = document.getElementById('cloud-key');
+const cloudModelInput = document.getElementById('cloud-model');
 const minSilenceInput = document.getElementById('min-silence');
 const maxSpeechInput = document.getElementById('max-speech');
 const uiLangInput = document.getElementById('ui-lang');
@@ -56,6 +56,7 @@ const DEFAULTS = {
   ollamaUrl: 'http://127.0.0.1:11434',
   qwencloudUrl: 'https://maas.qwencloudapi.com',
   qwencloudModel: 'qwen3.8-livetranslate-flash-realtime',
+  cloudEnabled: false,
   uiLang: 'en',
   theme: 'dark',
   contextSize: 4096,
@@ -65,8 +66,11 @@ const DEFAULTS = {
 let isCapturing = false;
 // Last model-list status, kept so it can be re-rendered when the UI language changes.
 let modelStatus = null;
+// Online providers (cloud.js), and the storage key of each one's chosen model (e.g. openaiModel).
+const CLOUD_IDS = Object.keys(LC_CLOUD_PROVIDERS);
+const modelKey = (provider) => `${provider}Model`;
 // Last selected model per provider, so switching providers doesn't lose the choice.
-let providerModels = { lmstudio: '', ollama: '', qwencloud: '' };
+let providerModels = { lmstudio: '', ollama: '', ...Object.fromEntries(CLOUD_IDS.map(p => [p, ''])) };
 // Models reported by the server on the last refresh: [{ id, loaded, ctx }].
 let lastModels = [];
 // True when the server exposes LM Studio's load/unload API (LM Studio 0.4+).
@@ -433,6 +437,11 @@ function applyLanguage(lang) {
   });
   document.querySelectorAll('select.lang-select').forEach(sel => buildLanguageSelect(sel, lang));
   buildTemplateSelect();
+  buildProviderSelect();
+  renderCloudState();
+  renderKeyState();
+  renderKeyList();
+  renderCloudStatus();
 
   renderModelStatus();
   renderLoadState();
@@ -460,8 +469,10 @@ function updateHero() {
     source === 'auto' || !source ? t('heroAuto') : lcLanguageName(source, lang);
   document.getElementById('hero-target').textContent =
     target === 'none' || !target ? t('heroOriginal') : lcLanguageName(target, lang);
-  document.getElementById('hero-model').textContent =
-    target === 'none' ? '\u2014' : (currentModel() || '\u2014');
+  const model = currentModel();
+  const provider = llmProviderInput.value;
+  document.getElementById('hero-model').textContent = target === 'none' || !model ? '\u2014'
+    : lcIsCloudProvider(provider) ? `${LC_CLOUD_PROVIDERS[provider].name} \u00b7 ${model}` : model;
   renderLiveStats();
 }
 
@@ -876,14 +887,276 @@ async function listOllamaModels(base) {
 }
 
 // ---------------------------------------------------------------------------
-// Qwen Cloud (online): any chat / translation model on the account works as the translator; a
-// LiveTranslate model (audio in, translated subtitles out) replaces the local speech recognition too.
+// Online AI providers (cloud.js). Only offered while "Cloud AI providers" is on, which asks first.
+// API keys live in the extension's private key store (LcApiKeys): the popup saves and deletes them
+// and uses one to list its provider's models, but never shows a saved key or keeps one in the page.
+// Qwen Cloud: any chat / translation model on the account works as the translator; a LiveTranslate
+// model (audio in, translated subtitles out) replaces the local speech recognition too.
 // ---------------------------------------------------------------------------
 
 const QWEN_LIVE_MODELS = ['qwen3.8-livetranslate-flash-realtime', 'qwen3.5-livetranslate-flash-realtime'];
 
 function isLiveTranslate(model) {
   return /livetranslate/i.test(model || '') && /realtime/i.test(model || '');
+}
+
+// LLM Server menu: the local servers, then (cloud on) the online providers.
+function buildProviderSelect(wanted) {
+  const value = wanted || llmProviderInput.value || DEFAULTS.llmProvider;
+  llmProviderInput.innerHTML = '';
+  llmProviderInput.add(new Option(t('optProviderLmstudio'), 'lmstudio'));
+  llmProviderInput.add(new Option(t('optProviderOllama'), 'ollama'));
+  if (cloudEnabledInput.checked) {
+    const group = document.createElement('optgroup');
+    group.label = t('optGroupCloud');
+    for (const [id, p] of Object.entries(LC_CLOUD_PROVIDERS)) group.appendChild(new Option(p.name, id));
+    llmProviderInput.appendChild(group);
+  }
+  llmProviderInput.value = [...llmProviderInput.options].some(o => o.value === value) ? value : 'lmstudio';
+}
+
+function renderCloudState() {
+  const on = cloudEnabledInput.checked;
+  document.getElementById('cloud-hint').textContent = t(on ? 'cloudOnHint' : 'cloudOffHint');
+  const footer = document.getElementById('footer');
+  footer.textContent = on ? t('footerCloud') : t('footerText');
+  footer.classList.toggle('cloud-on', on);
+}
+
+// Turning cloud providers on asks first (cloud-confirm); turning them off goes back to LM Studio
+// if an online provider was chosen. Saved keys stay until deleted (Saved API Keys).
+function setCloudEnabled(on) {
+  const wasCloud = lcIsCloudProvider(llmProviderInput.value);
+  cloudEnabledInput.checked = on;
+  document.getElementById('cloud-confirm').hidden = true;
+  // (turned on for a profile's online provider: use it now)
+  const standIn = on ? cloudStandIn : null;
+  cloudStandIn = null;
+  buildProviderSelect(standIn || undefined);
+  renderCloudState();
+  if (standIn) {
+    showProviderFields();
+    refreshModels();
+  } else if (wasCloud && !on) {
+    showProviderFields();
+    fillModelSelect([]);
+    refreshModels();
+  }
+  saveSettings();
+  updateHero();
+}
+
+// A profile's online provider, stood in for by LM Studio while cloud providers are off (the profile
+// still means its own provider, so it isn't shown as edited; its panel says why).
+let cloudStandIn = null;
+
+// { provider: last 4 characters of its saved key }
+let keyHints = {};
+
+async function loadKeyHints() {
+  try {
+    keyHints = await LcApiKeys.hints();
+  } catch (e) {
+    keyHints = {};
+  }
+  renderKeyState();
+  renderKeyList();
+}
+
+// The chosen online provider's key field: never filled in; says whether a key is saved.
+function renderKeyState() {
+  const provider = llmProviderInput.value;
+  if (!lcIsCloudProvider(provider)) return;
+  const { name, keysUrl } = LC_CLOUD_PROVIDERS[provider];
+  const hint = keyHints[provider];
+  document.getElementById('cloud-key-label').textContent = t('labelApiKey', { provider: name });
+  cloudKeyInput.placeholder = hint ? t('keySavedPlaceholder', { last4: hint }) : t('keyPlaceholder');
+  document.getElementById('cloud-key-remove').hidden = !hint;
+  document.getElementById('cloud-send-note').textContent = t('cloudSendNote', { provider: name });
+  const status = document.getElementById('cloud-key-status');
+  status.textContent = '';
+  if (keyStatus && keyStatus.provider === provider) {
+    status.textContent = t(keyStatus.key, { provider: name });
+    status.className = 'hint ' + (keyStatus.cls || '');
+  } else if (hint) {
+    status.textContent = t('keySaved', { last4: hint });
+    status.className = 'hint ok';
+  } else {
+    status.className = 'hint';
+    const link = document.createElement('a');
+    link.href = keysUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = t('getKey', { provider: name });
+    status.append(t('keyNone'), ' ', link);
+  }
+}
+
+// A short message under the key field (saved, deleted, not a key), then back to the key's state.
+let keyStatus = null;
+let keyStatusTimer = null;
+function flashKeyStatus(provider, key, cls) {
+  keyStatus = { provider, key, cls };
+  renderKeyState();
+  clearTimeout(keyStatusTimer);
+  keyStatusTimer = setTimeout(() => {
+    keyStatus = null;
+    renderKeyState();
+  }, 3000);
+}
+
+// Saved API Keys panel: one row per saved key (provider, last 4 characters, delete).
+function renderKeyList() {
+  const list = document.getElementById('key-list');
+  const saved = CLOUD_IDS.filter(p => keyHints[p]);
+  document.getElementById('api-keys-panel').hidden = !saved.length;
+  list.innerHTML = '';
+  for (const provider of saved) {
+    const row = document.createElement('div');
+    row.className = 'key-row';
+    const name = document.createElement('span');
+    name.className = 'key-name';
+    name.textContent = LC_CLOUD_PROVIDERS[provider].name;
+    const tail = document.createElement('span');
+    tail.className = 'key-tail';
+    tail.textContent = `\u2022\u2022\u2022\u2022 ${keyHints[provider]}`;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'link-btn danger';
+    remove.textContent = t('btnRemoveKey');
+    remove.addEventListener('click', () => removeKey(provider));
+    row.append(name, tail, remove);
+    list.appendChild(row);
+  }
+}
+
+// After any change to the saved keys: refresh what the popup shows, and have the offscreen
+// document (if captions are running) re-read them for the app server.
+async function keysChanged() {
+  await loadKeyHints();
+  chrome.runtime.sendMessage({ type: 'api-keys-changed', target: 'offscreen' }).catch(() => {});
+  if (lcIsCloudProvider(llmProviderInput.value)) refreshCloudModels();
+}
+
+async function saveKey(provider, raw) {
+  const key = lcCleanKey(raw);
+  if (!key || !lcIsCloudProvider(provider)) {
+    flashKeyStatus(provider, 'keyInvalid', 'error');
+    return;
+  }
+  try {
+    await LcApiKeys.set(provider, key);
+    flashKeyStatus(provider, 'keySavedNow', 'ok');
+  } catch (e) {
+    flashKeyStatus(provider, 'keyStoreError', 'error');
+  }
+  await keysChanged();
+}
+
+async function removeKey(provider) {
+  await LcApiKeys.remove(provider);
+  flashKeyStatus(provider, 'keyRemoved', 'ok');
+  showKeysStatus('keyRemoved', { provider: LC_CLOUD_PROVIDERS[provider].name }, 'ok');
+  await keysChanged();
+}
+
+function showKeysStatus(key, vars, cls, countdown) {
+  const el = document.getElementById('keys-status');
+  el.hidden = !key;
+  if (!key) return;
+  el.textContent = t(key, vars);
+  el.className = `hint config-status ${cls || ''}`;
+  if (countdown) {
+    el.style.setProperty('--countdown', `${DELETE_CONFIRM_MS}ms`);
+    void el.offsetWidth; // restart the countdown line
+    el.classList.add('countdown');
+  }
+}
+
+// Clear all API keys: press twice (like deleting a profile).
+let clearKeysTimer = null;
+async function clearKeysPressed() {
+  if (!clearKeysTimer) {
+    showKeysStatus('clearKeysConfirm', {}, 'error', true);
+    clearKeysTimer = setTimeout(() => {
+      clearKeysTimer = null;
+      showKeysStatus(null);
+    }, DELETE_CONFIRM_MS);
+    return;
+  }
+  clearTimeout(clearKeysTimer);
+  clearKeysTimer = null;
+  await LcApiKeys.clear();
+  await keysChanged();
+  document.getElementById('api-keys-panel').hidden = false; // (keep the confirmation visible)
+  showKeysStatus('keysCleared', {}, 'ok');
+  setTimeout(() => {
+    showKeysStatus(null);
+    renderKeyList();
+  }, 2500);
+}
+
+let cloudStatus = null;
+function renderCloudStatus() {
+  const el = document.getElementById('cloud-status');
+  el.textContent = cloudStatus ? t(cloudStatus.key, cloudStatus.vars) : '';
+  el.className = 'hint' + (cloudStatus && cloudStatus.cls ? ' ' + cloudStatus.cls : '');
+}
+
+// Explains what the chosen Qwen model does (LiveTranslate or text translation).
+function updateQwenMode() {
+  const el = document.getElementById('qwen-mode');
+  el.hidden = llmProviderInput.value !== 'qwencloud';
+  const live = isLiveTranslate(cloudModelInput.value);
+  const parts = [t(live ? 'qwenModeLive' : 'qwenModeText')];
+  if (live && targetLangInput.value === 'none') parts.push(t('qwenNeedsTarget'));
+  el.textContent = parts.join(' ');
+}
+
+// The chosen provider's models, read with its saved key, as suggestions for the Model field.
+let cloudListSeq = 0;
+async function refreshCloudModels() {
+  const provider = llmProviderInput.value;
+  if (!lcIsCloudProvider(provider)) return;
+  const seq = ++cloudListSeq;
+  const name = LC_CLOUD_PROVIDERS[provider].name;
+  const list = document.getElementById('cloud-models');
+  const fill = (ids) => {
+    list.innerHTML = '';
+    const all = provider === 'qwencloud' ? [...QWEN_LIVE_MODELS, ...ids.filter(id => !QWEN_LIVE_MODELS.includes(id))] : ids;
+    for (const id of all) list.appendChild(new Option(isLiveTranslate(id) ? `${id} (LiveTranslate)` : id, id));
+  };
+  fill([]);
+  const key = await LcApiKeys.get(provider).catch(() => '');
+  if (seq !== cloudListSeq) return;
+  if (!key) {
+    cloudStatus = { key: 'cloudNoKey', vars: { provider: name }, cls: '' };
+    renderCloudStatus();
+    return;
+  }
+  const spinner = document.getElementById('refresh-cloud');
+  spinner.classList.add('spinning');
+  cloudStatus = { key: 'modelLoading', vars: {}, cls: 'busy' };
+  renderCloudStatus();
+  try {
+    const ids = await lcListCloudModels(provider, key, qwenUrlInput.value);
+    if (seq !== cloudListSeq) return;
+    fill(ids);
+    if (!cloudModelInput.value.trim() && ids.length) {
+      // Nothing chosen yet: start with the provider's small, fast model.
+      cloudModelInput.value = lcPreferredModel(provider, ids);
+      saveSettings();
+      updateHero();
+    }
+    cloudStatus = { key: 'modelFound', vars: { n: ids.length }, cls: 'ok' };
+  } catch (e) {
+    if (seq !== cloudListSeq) return;
+    const rejected = e.status === 401 || e.status === 403;
+    cloudStatus = { key: rejected ? 'cloudKeyRejected' : 'modelErrorCloud', vars: { provider: name, err: e.message }, cls: 'error' };
+  } finally {
+    spinner.classList.remove('spinning');
+  }
+  renderCloudStatus();
 }
 
 // ---------------------------------------------------------------------------
@@ -959,56 +1232,7 @@ async function refreshTemplates() {
 
 // The model in use for the chosen provider.
 function currentModel() {
-  return llmProviderInput.value === 'qwencloud' ? qwenModelInput.value.trim() : modelNameInput.value;
-}
-
-function qwenBase() {
-  return (qwenUrlInput.value.trim() || DEFAULTS.qwencloudUrl).replace(/\/+$/, '').replace(/\/compatible-mode(\/v1)?$/, '');
-}
-
-let qwenStatus = null;
-function renderQwenStatus() {
-  const el = document.getElementById('qwen-status');
-  el.textContent = qwenStatus ? t(qwenStatus.key, qwenStatus.vars) : '';
-  el.className = 'hint' + (qwenStatus && qwenStatus.cls ? ' ' + qwenStatus.cls : '');
-}
-
-// Explains what the chosen Qwen model does (LiveTranslate or text translation).
-function updateQwenMode() {
-  const el = document.getElementById('qwen-mode');
-  const live = isLiveTranslate(qwenModelInput.value);
-  const parts = [t(live ? 'qwenModeLive' : 'qwenModeText')];
-  if (live && targetLangInput.value === 'none') parts.push(t('qwenNeedsTarget'));
-  el.textContent = parts.join(' ');
-}
-
-async function refreshQwenModels() {
-  const list = document.getElementById('qwencloud-models');
-  const fill = (ids) => {
-    list.innerHTML = '';
-    for (const id of [...QWEN_LIVE_MODELS, ...ids.filter(id => !QWEN_LIVE_MODELS.includes(id))]) {
-      list.appendChild(new Option(isLiveTranslate(id) ? `${id} (LiveTranslate)` : id, id));
-    }
-  };
-  fill([]);
-  if (!qwenKeyInput.value.trim()) {
-    qwenStatus = { key: 'qwenNoKey', cls: '' };
-    renderQwenStatus();
-    return;
-  }
-  const spinner = document.getElementById('refresh-qwen');
-  spinner.classList.add('spinning');
-  try {
-    const res = await lcFetchJson(`${qwenBase()}/compatible-mode/v1/models`,
-      { headers: { Authorization: `Bearer ${qwenKeyInput.value.trim()}` } }, 8000);
-    const ids = (res.data || []).map(m => m.id).filter(id => !/embed|rerank|tts|image|wanx|wan2/i.test(id)).sort();
-    fill(ids);
-    qwenStatus = { key: 'modelFound', vars: { n: ids.length }, cls: 'ok' };
-  } catch (e) {
-    qwenStatus = { key: 'modelErrorQwen', vars: { url: qwenBase(), err: e.message }, cls: 'error' };
-  }
-  spinner.classList.remove('spinning');
-  renderQwenStatus();
+  return lcIsCloudProvider(llmProviderInput.value) ? cloudModelInput.value.trim() : modelNameInput.value;
 }
 
 function setModelStatus(key, vars, cls) {
@@ -1058,14 +1282,14 @@ let refreshSeq = 0;
 async function refreshModels() {
   const seq = ++refreshSeq;
   const provider = llmProviderInput.value;
-  if (provider === 'qwencloud') {
+  if (lcIsCloudProvider(provider)) {
     canManageModels = false;
     lastModels = [];
     renderLoadState();
     renderMissingModel();
     updateHero();
     updateQwenMode();
-    await refreshQwenModels();
+    await refreshCloudModels();
     return;
   }
   const base = stripUrl(provider === 'ollama' ? ollamaUrlInput.value : lmstudioUrlInput.value);
@@ -1184,8 +1408,18 @@ function showProviderFields() {
   const provider = llmProviderInput.value;
   document.getElementById('group-lmstudio').hidden = provider !== 'lmstudio';
   document.getElementById('group-ollama').hidden = provider !== 'ollama';
-  document.getElementById('group-qwencloud').hidden = provider !== 'qwencloud';
-  document.getElementById('group-model').hidden = provider === 'qwencloud';
+  const cloud = lcIsCloudProvider(provider);
+  document.getElementById('group-cloud').hidden = !cloud;
+  document.getElementById('group-qwen-endpoint').hidden = provider !== 'qwencloud';
+  document.getElementById('group-model').hidden = cloud;
+  if (cloud) {
+    cloudModelInput.value = providerModels[provider] || '';
+    cloudModelInput.placeholder = provider === 'qwencloud' ? DEFAULTS.qwencloudModel : '';
+    cloudStatus = null;
+    renderCloudStatus();
+    renderKeyState();
+  }
+  updateQwenMode();
 }
 
 // ---------------------------------------------------------------------------
@@ -1193,10 +1427,12 @@ function showProviderFields() {
 // ---------------------------------------------------------------------------
 
 (async () => {
+  // (keys saved by older versions in chrome.storage.local move to the private key store first)
+  await lcMigrateApiKeys().catch(e => console.warn('API key move failed:', e));
   const result = await chrome.storage.local.get([
     'llmProvider', 'lmstudioUrl', 'ollamaUrl', 'modelName', 'lmstudioModel', 'ollamaModel',
-    'qwencloudUrl', 'qwencloudKey', 'qwencloudModel',
-    'deepseekKey', 'minSilence', 'maxSpeech', 'vadThreshold', 'detectSpeakers', 'speakerThreshold',
+    'qwencloudUrl', 'cloudEnabled', ...CLOUD_IDS.map(modelKey),
+    'minSilence', 'maxSpeech', 'vadThreshold', 'detectSpeakers', 'speakerThreshold',
     'uiLang', 'sourceLang', 'targetLang', 'showBilingual', 'asrEngine',
     'contextSize', 'promptTemplate', 'theme', 'customTheme', 'lmModelState', 'saveTranscripts',
     'profiles', 'activeProfile', 'displayConfigs', 'activeDisplayConfig', 'pendingModel', 'lmDownload',
@@ -1217,7 +1453,15 @@ function showProviderFields() {
   saveTranscriptsInput.checked = result.saveTranscripts === true; // off unless turned on
   modelState = result.lmModelState || null;
 
-  llmProviderInput.value = result.llmProvider || DEFAULTS.llmProvider;
+  // Cloud providers: off unless turned on. (Qwen Cloud users of older versions had already chosen
+  // an online provider: theirs stays on.)
+  let cloudEnabled = result.cloudEnabled === true;
+  if (result.cloudEnabled === undefined && result.llmProvider === 'qwencloud') {
+    cloudEnabled = true;
+    chrome.storage.local.set({ cloudEnabled });
+  }
+  cloudEnabledInput.checked = cloudEnabled;
+  buildProviderSelect(result.llmProvider || DEFAULTS.llmProvider);
   lmstudioUrlInput.value = result.lmstudioUrl || DEFAULTS.lmstudioUrl;
   ollamaUrlInput.value = (!result.ollamaUrl || result.ollamaUrl === 'http://localhost:11434')
     ? DEFAULTS.ollamaUrl : result.ollamaUrl;
@@ -1226,13 +1470,13 @@ function showProviderFields() {
   providerModels = {
     lmstudio: result.lmstudioModel || '',
     ollama: result.ollamaModel || (result.llmProvider ? '' : result.modelName) || '',
-    qwencloud: result.qwencloudModel || DEFAULTS.qwencloudModel
+    ...Object.fromEntries(CLOUD_IDS.map(p => [p, result[modelKey(p)] || ''])),
   };
-  qwenUrlInput.value = result.qwencloudUrl || DEFAULTS.qwencloudUrl;
-  qwenKeyInput.value = result.qwencloudKey || '';
-  qwenModelInput.value = providerModels.qwencloud;
+  providerModels.qwencloud = providerModels.qwencloud || DEFAULTS.qwencloudModel;
+  qwenUrlInput.value = lcQwenEndpoint(result.qwencloudUrl);
+  cloudModelInput.value = providerModels[llmProviderInput.value] || '';
+  loadKeyHints();
 
-  if (result.deepseekKey) deepseekKeyInput.value = result.deepseekKey;
   if (result.minSilence !== undefined) minSilenceInput.value = result.minSilence;
   if (result.maxSpeech !== undefined) maxSpeechInput.value = result.maxSpeech;
   if (result.vadThreshold !== undefined) vadThresholdInput.value = result.vadThreshold;
@@ -1270,20 +1514,20 @@ let lastSubtitleMode = null; // subtitle language/bilingual mode last sent to th
 
 const saveSettings = () => {
   const provider = llmProviderInput.value;
-  if (provider === 'qwencloud') providerModels.qwencloud = qwenModelInput.value.trim();
+  if (lcIsCloudProvider(provider)) providerModels[provider] = cloudModelInput.value.trim();
   else if (modelNameInput.value) providerModels[provider] = modelNameInput.value;
 
+  // (API keys are never part of the settings: they stay in the private key store, cloud.js)
   const settings = {
     llmProvider: provider,
+    cloudEnabled: cloudEnabledInput.checked,
     lmstudioUrl: lmstudioUrlInput.value.trim(),
     ollamaUrl: ollamaUrlInput.value.trim(),
     modelName: providerModels[provider],
     lmstudioModel: providerModels.lmstudio,
     ollamaModel: providerModels.ollama,
-    qwencloudUrl: qwenUrlInput.value.trim(),
-    qwencloudKey: qwenKeyInput.value.trim(),
-    qwencloudModel: providerModels.qwencloud,
-    deepseekKey: deepseekKeyInput.value,
+    qwencloudUrl: lcQwenEndpoint(qwenUrlInput.value),
+    ...Object.fromEntries(CLOUD_IDS.map(p => [modelKey(p), providerModels[p] || ''])),
     minSilence: parseFloat(minSilenceInput.value),
     maxSpeech: parseFloat(maxSpeechInput.value),
     vadThreshold: parseFloat(vadThresholdInput.value),
@@ -1345,23 +1589,56 @@ function saveDragEnd() {
 }
 
 llmProviderInput.addEventListener('change', () => {
+  cloudStandIn = null;
   showProviderFields();
   fillModelSelect([]);
   saveSettings();
   refreshModels();
 });
-for (const input of [lmstudioUrlInput, ollamaUrlInput, qwenUrlInput, qwenKeyInput]) {
+for (const input of [lmstudioUrlInput, ollamaUrlInput]) {
   input.addEventListener('input', () => {
     saveSettings();
     scheduleRefresh();
   });
 }
-qwenModelInput.addEventListener('input', () => {
+
+// Online providers
+cloudEnabledInput.addEventListener('change', () => {
+  if (cloudEnabledInput.checked) {
+    // Not on yet: say what it means first.
+    cloudEnabledInput.checked = false;
+    document.getElementById('cloud-confirm').hidden = false;
+    document.getElementById('cloud-confirm-yes').focus();
+  } else {
+    setCloudEnabled(false);
+  }
+});
+document.getElementById('cloud-confirm-yes').addEventListener('click', () => setCloudEnabled(true));
+document.getElementById('cloud-confirm-no').addEventListener('click', () => {
+  document.getElementById('cloud-confirm').hidden = true;
+  cloudEnabledInput.focus();
+});
+// A pasted key is saved when the field is left (or Enter is pressed), then cleared from the page.
+cloudKeyInput.addEventListener('change', () => {
+  const raw = cloudKeyInput.value;
+  cloudKeyInput.value = '';
+  if (raw.trim()) saveKey(llmProviderInput.value, raw);
+});
+cloudKeyInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') cloudKeyInput.blur();
+});
+document.getElementById('cloud-key-remove').addEventListener('click', () => removeKey(llmProviderInput.value));
+document.getElementById('clear-keys').addEventListener('click', clearKeysPressed);
+qwenUrlInput.addEventListener('change', () => {
+  saveSettings();
+  refreshCloudModels();
+});
+cloudModelInput.addEventListener('input', () => {
   saveSettings();
   updateHero();
   updateQwenMode();
 });
-document.getElementById('refresh-qwen').addEventListener('click', refreshQwenModels);
+document.getElementById('refresh-cloud').addEventListener('click', refreshCloudModels);
 promptTemplateInput.addEventListener('change', () => {
   saveSettings();
   updateTemplateHint();
@@ -1428,7 +1705,6 @@ themeBaseInput.addEventListener('change', () => {
   changeCustomTheme(lcCustomThemeFrom(themeBaseInput.value), true);
   setCustomThemeInputs();
 });
-deepseekKeyInput.addEventListener('input', saveSettings);
 
 uiLangInput.addEventListener('change', () => {
   applyLanguage(uiLangInput.value);
@@ -1901,7 +2177,7 @@ document.addEventListener('keydown', (e) => {
 // ---------------------------------------------------------------------------
 // Saved configs. Two independent kinds:
 //   - profiles: the translation setup (LLM server + URL, model, context size, languages,
-//     speech engine, bilingual mode). The DeepSeek key is deliberately never copied into them.
+//     speech engine, bilingual mode). API keys are never part of them.
 //   - display configs: the subtitle look, layout and timing, and the popup's theme (with the
 //     Custom theme's colours when that's the one in use).
 // Stored as chrome.storage.local `profiles` / `displayConfigs` ([{ id, name, settings }]) plus the
@@ -1969,19 +2245,19 @@ function applyDisplay(settings) {
 function captureProfile() {
   const provider = llmProviderInput.value;
   const models = { ...providerModels };
-  if (provider === 'qwencloud') models.qwencloud = qwenModelInput.value.trim();
+  if (lcIsCloudProvider(provider)) models[provider] = cloudModelInput.value.trim();
   else if (modelNameInput.value) models[provider] = modelNameInput.value;
   // While the profile's own model isn't installed yet, another model is used in its place; the
   // profile still means its own model, so it isn't shown as edited.
   if (pendingModel) models.lmstudio = pendingModel.key;
   return {
-    llmProvider: provider,
+    llmProvider: cloudStandIn || provider,
     lmstudioUrl: lmstudioUrlInput.value.trim(),
     ollamaUrl: ollamaUrlInput.value.trim(),
     lmstudioModel: models.lmstudio || '',
     ollamaModel: models.ollama || '',
-    qwencloudUrl: qwenUrlInput.value.trim(),
-    qwencloudModel: models.qwencloud || '',
+    qwencloudUrl: lcQwenEndpoint(qwenUrlInput.value),
+    ...Object.fromEntries(CLOUD_IDS.map(p => [modelKey(p), models[p] || ''])),
     contextSize: parseInt(contextSizeInput.value),
     promptTemplate: promptTemplateInput.value,
     sourceLang: sourceLangInput.value,
@@ -2000,15 +2276,19 @@ async function applyProfile(p, config) {
   // The model in use now, to keep translating with if this profile's model isn't installed.
   const previousModel = llmProviderInput.value === 'lmstudio' ? modelNameInput.value : providerModels.lmstudio;
   if (pendingModel) setPendingModel(null);
-  llmProviderInput.value = p.llmProvider || DEFAULTS.llmProvider;
+  // A profile with an online provider only uses it while cloud providers are on; otherwise LM Studio.
+  const wanted = p.llmProvider || DEFAULTS.llmProvider;
+  const needsCloud = lcIsCloudProvider(wanted) && !cloudEnabledInput.checked ? wanted : null;
+  cloudStandIn = needsCloud;
+  llmProviderInput.value = needsCloud ? 'lmstudio' : wanted;
+  if (!llmProviderInput.value) llmProviderInput.value = 'lmstudio';
   lmstudioUrlInput.value = p.lmstudioUrl || DEFAULTS.lmstudioUrl;
   ollamaUrlInput.value = p.ollamaUrl || DEFAULTS.ollamaUrl;
-  providerModels = { lmstudio: p.lmstudioModel || '', ollama: p.ollamaModel || '', qwencloud: providerModels.qwencloud };
-  // (Qwen Cloud settings: not in profiles saved before it was added. The API key is never in profiles.)
-  if (p.qwencloudUrl !== undefined) qwenUrlInput.value = p.qwencloudUrl || DEFAULTS.qwencloudUrl;
-  if (p.qwencloudModel !== undefined) providerModels.qwencloud = p.qwencloudModel;
-  qwenModelInput.value = providerModels.qwencloud;
-  updateQwenMode();
+  // (online settings: not in profiles saved before they existed; API keys are never in profiles)
+  providerModels = { ...providerModels, lmstudio: p.lmstudioModel || '', ollama: p.ollamaModel || '' };
+  for (const id of CLOUD_IDS) if (p[modelKey(id)] !== undefined) providerModels[id] = p[modelKey(id)];
+  if (p.qwencloudUrl !== undefined) qwenUrlInput.value = lcQwenEndpoint(p.qwencloudUrl);
+  cloudModelInput.value = lcIsCloudProvider(llmProviderInput.value) ? providerModels[llmProviderInput.value] || '' : '';
   contextSizeInput.value = String(p.contextSize || DEFAULTS.contextSize);
   // (not in profiles saved before prompt templates existed: those use Auto)
   setTemplateValue(p.promptTemplate || 'auto');
@@ -2031,13 +2311,13 @@ async function applyProfile(p, config) {
   updateContextualControls();
   updatePreview();
   await refreshModels();
-  const wanted = p.lmstudioModel;
-  if (llmProviderInput.value === 'lmstudio' && canManageModels && wanted && !lastModels.some(m => m.id === wanted)) {
+  const wantedModel = p.lmstudioModel;
+  if (llmProviderInput.value === 'lmstudio' && canManageModels && wantedModel && !lastModels.some(m => m.id === wantedModel)) {
     // Not installed here: keep translating with the model that was in use, and offer to download
     // this one (Model tab). Imported profiles know where their model comes from.
-    const meta = config && config.model && config.model.key === wanted
+    const meta = config && config.model && config.model.key === wantedModel
       ? config.model
-      : { key: wanted, name: wanted, download: null, quantization: '', sizeBytes: 0 };
+      : { key: wantedModel, name: wantedModel, download: null, quantization: '', sizeBytes: 0 };
     const fallback = lastModels.some(m => m.id === previousModel) ? previousModel : '';
     providerModels.lmstudio = fallback;
     fillModelSelect(lastModels);
@@ -2306,7 +2586,8 @@ profileConfigs = new ConfigManager({
   capture: captureProfile,
   apply: applyProfile,
   onChange: updateHeroLabel,
-  warning: () => (pendingModel ? t('modelMissingShort', { model: pendingModel.name || pendingModel.key }) : null),
+  warning: () => (pendingModel ? t('modelMissingShort', { model: pendingModel.name || pendingModel.key })
+    : cloudStandIn ? t('profileNeedsCloud', { provider: LC_CLOUD_PROVIDERS[cloudStandIn].name }) : null),
   exportItems: exportProfiles
 });
 

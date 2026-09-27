@@ -21,6 +21,8 @@ import logging
 import time
 from urllib.parse import quote, urlsplit
 
+from translator import qwen_base
+
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
@@ -38,11 +40,10 @@ def is_livetranslate(model):
 
 
 def realtime_url(base, model):
-    """https://maas.qwencloudapi.com (or a DashScope endpoint, with or without /compatible-mode/v1)
-    -> wss://.../api-ws/v1/realtime?model=..."""
-    parts = urlsplit((base or "").strip() or "https://maas.qwencloudapi.com")
-    scheme = "ws" if parts.scheme == "http" else "wss"  # http only for a local test server
-    return f"{scheme}://{parts.netloc}/api-ws/v1/realtime?model={quote(model)}"
+    """https://maas.qwencloudapi.com (or another of translator.QWEN_HOSTS; anything else becomes the
+    default, so the API key only goes to Qwen) -> wss://.../api-ws/v1/realtime?model=..."""
+    host = urlsplit(qwen_base(base)).hostname
+    return f"wss://{host}/api-ws/v1/realtime?model={quote(model)}"
 
 
 class Segment:

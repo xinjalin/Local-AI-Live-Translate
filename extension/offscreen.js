@@ -8,6 +8,18 @@ let reconnectTimer = null;
 let reconnectDelay = 1000;
 let sentConfig = '';
 let configTimer = null;
+// Saved API keys (cloud.js), read here - not passed around in messages - for the app server config.
+let apiKeys = {};
+const keysReady = loadApiKeys();
+
+async function loadApiKeys() {
+  try {
+    apiKeys = await LcApiKeys.all();
+  } catch (e) {
+    apiKeys = {};
+    console.warn('Could not read the saved API keys');
+  }
+}
 
 // Must not be an async function: a listener that returns a Promise counts as a
 // reply in Chrome, so it would answer messages meant for the background worker
@@ -23,6 +35,10 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'update-config') {
     config = message.config;
     queueConfig();
+  }
+
+  if (message.type === 'api-keys-changed') {
+    loadApiKeys().then(queueConfig);
   }
 });
 
@@ -169,9 +185,10 @@ function queueConfig() {
   if (JSON.stringify(backendConfig()) !== sentConfig) configTimer = setTimeout(sendConfigToBackend, 300);
 }
 
-function sendConfigToBackend() {
+async function sendConfigToBackend() {
   clearTimeout(configTimer);
   configTimer = null;
+  await keysReady;
   if (ws && ws.readyState === WebSocket.OPEN) {
     sentConfig = JSON.stringify(backendConfig());
     ws.send(sentConfig);
@@ -179,13 +196,17 @@ function sendConfigToBackend() {
 }
 
 function backendConfig() {
+  // An online provider (and its key) only while cloud providers are turned on in the popup; the
+  // key goes to the app server on this PC, which sends it only to that provider.
+  const cloud = config.cloudEnabled === true && lcIsCloudProvider(config.llmProvider);
+  const provider = cloud || config.llmProvider === 'ollama' ? config.llmProvider : 'lmstudio';
   return {
     event: 'config',
-    llm_provider: ['ollama', 'qwencloud'].includes(config.llmProvider) ? config.llmProvider : 'lmstudio',
-    llm_url: { ollama: config.ollamaUrl, qwencloud: config.qwencloudUrl }[config.llmProvider] || config.lmstudioUrl,
-    qwen_key: config.llmProvider === 'qwencloud' ? config.qwencloudKey : '',
-    model_name: config.modelName,
-    deepseek_key: config.deepseekKey,
+    llm_provider: provider,
+    llm_url: provider === 'qwencloud' ? lcQwenEndpoint(config.qwencloudUrl)
+      : provider === 'ollama' ? config.ollamaUrl : cloud ? '' : config.lmstudioUrl,
+    api_key: cloud ? apiKeys[provider] || '' : '',
+    model_name: provider === config.llmProvider ? config.modelName : config.lmstudioModel || '',
     min_silence: config.minSilence,
     max_speech: config.maxSpeech,
     vad_threshold: config.vadThreshold !== undefined ? config.vadThreshold : 0.4,
