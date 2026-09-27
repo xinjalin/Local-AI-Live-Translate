@@ -19,8 +19,8 @@ Chrome extension ──audio──> Local AI Live Translate server ──> LM St
 
 ## Screenshots
 
-The extension popup in the **Dark** and **Light** themes (there are also Hybrid, three OLED themes,
-System and your own Custom theme), captured while translating Japanese into English with Hy-MT2-7B:
+The extension popup in the **Dark** and **Light** themes (there are also Hybrid, Sakura Light and Dark,
+three OLED themes, System and your own Custom theme), captured while translating Japanese into English with Hy-MT2-7B:
 
 <table>
   <tr>
@@ -291,9 +291,11 @@ Turkish); differences of a point or two are within noise.
   on screen*.
 - **Save transcripts** (Live tab) is off by default. When on, each session is saved as a Markdown
   file in `transcripts/`, with the original and translated text of every line.
-- **Themes** (Display tab): Dark, Light, Hybrid (dark shell with light panels), System, and the OLED
-  family with a blue accent — **OLED Light** (white), **OLED Dim** (dark navy) and **OLED Black**
-  (true black `#000`, no background glow: on OLED / AMOLED screens black pixels are switched off).
+- **Themes** (Display tab): Dark, Light, Hybrid (dark shell with light panels), **Sakura Light**
+  and **Sakura Dark** (cherry-blossom pinks on a blush page or a plum night, in the Glass style),
+  System, and the OLED family with a blue accent — **OLED Light** (white), **OLED Dim** (dark navy)
+  and **OLED Black** (true black `#000`, no background glow: on OLED / AMOLED screens black pixels
+  are switched off).
   **Custom** makes your own: pick a **Glass** style (glowing background, see-through panels, like
   Dark and Light) or **Flat** (solid surfaces, like the OLED themes), start from any built-in theme,
   and set the colours of the background, panels, accent and buttons, and of the headings, labels,

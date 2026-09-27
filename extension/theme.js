@@ -1,12 +1,15 @@
 // Popup theme (shared by popup.js and import.js).
 //
-// The built-in themes are sets of colour tokens in popup.css, picked with data-theme on <html>.
+// Most built-in themes are sets of colour tokens in popup.css, picked with data-theme on <html>.
 // The Custom theme is made here from a few colours the user picks: every token is worked out from
-// them and set on <html>, so the rest of the CSS doesn't know the difference. "Glass" keeps the
+// them and set on <html>, so the rest of the CSS doesn't know the difference. The Sakura themes are
+// made the same way, from fixed colours (LC_PRESET_THEMES). "Glass" keeps the
 // glowing background and see-through panels of Dark / Light / Hybrid; "Flat" has the solid
 // surfaces of the OLED themes.
 
-const LC_THEMES = ['dark', 'light', 'hybrid', 'oled-light', 'oled-dim', 'oled-black', 'system', 'custom'];
+const LC_THEMES = ['dark', 'light', 'hybrid', 'sakura-light', 'sakura-dark', 'oled-light', 'oled-dim', 'oled-black', 'system', 'custom'];
+// Built-in themes made from their LC_THEME_SEEDS colours (not in popup.css).
+const LC_PRESET_THEMES = ['sakura-light', 'sakura-dark'];
 const LC_THEME_STYLES = ['glass', 'flat'];
 // In the order the popup shows them: surfaces, then text.
 const LC_THEME_COLOR_KEYS = ['background', 'panel', 'accent', 'button', 'heading', 'label', 'text', 'muted', 'field'];
@@ -24,6 +27,15 @@ const LC_THEME_SEEDS = {
   hybrid: {
     style: 'glass', background: '#0b0a10', panel: '#f7f5fc', accent: '#7c3aed', button: '#ffffff',
     heading: '#6d6a7a', label: '#6d6a7a', text: '#16141d', muted: '#6d6a7a', field: '#16141d'
+  },
+  // Cherry blossom: petal pinks on a blush page (light) or a plum night (dark).
+  'sakura-light': {
+    style: 'glass', background: '#fdf0f5', panel: '#fffafc', accent: '#e05a8d', button: '#b8336c',
+    heading: '#b0577f', label: '#86707c', text: '#35202b', muted: '#8f7784', field: '#35202b'
+  },
+  'sakura-dark': {
+    style: 'glass', background: '#150b12', panel: '#23141e', accent: '#f07aa6', button: '#ffd3e3',
+    heading: '#e8a3bf', label: '#b89dab', text: '#fbeaf1', muted: '#a58c99', field: '#fbeaf1'
   },
   'oled-light': {
     style: 'flat', background: '#ffffff', panel: '#ffffff', accent: '#1d9bf0', button: '#1d9bf0',
@@ -160,9 +172,11 @@ function lcCustomThemeTokens(raw) {
     '--logo-wen': darkPage ? lcMix(A, white, 0.5) : lcMix(A, black, 0.3),
     '--logo-edge': darkPage ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
 
-    '--hero-bg': glass
+    // (glass: dark cards are lit from the top-left, light ones are tinted with the accent, as in
+    // the Dark and Light themes)
+    '--hero-bg': !glass ? heroBg : darkPanel
       ? `linear-gradient(150deg, ${lcMix(P, T, 0.1)} 0%, ${P} 55%, ${lcMix(P, B, 0.4)} 100%)`
-      : heroBg,
+      : `linear-gradient(150deg, ${P} 0%, ${lcMix(P, A, 0.06)} 55%, ${lcMix(P, A, 0.13)} 100%)`,
     '--hero-sheen': glass ? `radial-gradient(85% 70% at 25% -10%, ${lcAlpha(A, 0.22)}, transparent 60%)` : 'none',
     '--hero-border': lcAlpha(T, 0.1),
     '--hero-text': lcReadable(T, heroBg, 4.5),
@@ -237,8 +251,8 @@ function lcApplyTheme(theme, custom) {
     theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   root.dataset.theme = theme;
-  if (theme !== 'custom') return;
-  const tokens = lcCustomThemeTokens(custom);
+  if (theme !== 'custom' && !LC_PRESET_THEMES.includes(theme)) return;
+  const tokens = lcCustomThemeTokens(theme === 'custom' ? custom : lcCustomThemeFrom(theme));
   for (const [name, value] of Object.entries(tokens)) root.style.setProperty(name, value);
   lcCustomTokenNames = Object.keys(tokens);
 }

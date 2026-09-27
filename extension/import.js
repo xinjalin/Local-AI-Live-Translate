@@ -203,7 +203,7 @@ function profileSummary(s, model) {
 const SIZE_KEYS = { xsmall: 'optSizeXsmall', small: 'optSizeSmall', medium: 'optSizeMedium', large: 'optSizeLarge', xlarge: 'optSizeXlarge', xxlarge: 'optSizeXxlarge', huge: 'optSizeHuge' };
 const SHADOW_KEYS = { off: 'optShadowOff', soft: 'optShadowSoft', medium: 'optShadowMedium', strong: 'optShadowStrong', outline: 'optShadowOutline' };
 
-const THEME_KEYS = { dark: 'optThemeDark', light: 'optThemeLight', hybrid: 'optThemeHybrid', 'oled-light': 'optThemeOledLight', 'oled-dim': 'optThemeOledDim', 'oled-black': 'optThemeOledBlack', system: 'optThemeSystem', custom: 'optThemeCustom' };
+const THEME_KEYS = { dark: 'optThemeDark', light: 'optThemeLight', hybrid: 'optThemeHybrid', 'sakura-light': 'optThemeSakuraLight', 'sakura-dark': 'optThemeSakuraDark', 'oled-light': 'optThemeOledLight', 'oled-dim': 'optThemeOledDim', 'oled-black': 'optThemeOledBlack', system: 'optThemeSystem', custom: 'optThemeCustom' };
 
 function displaySummary(s) {
   const font = LC_FONTS[s.fontFamily].label || t('optFontSystem');
