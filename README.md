@@ -131,20 +131,27 @@ Turkish); differences of a point or two are within noise.
 | Model | File | Into English | From English | Per line (median / slowest 10 %) | Speed | Notes |
 |---|---|---|---|---|---|---|
 | **Hy-MT2-7B Q8_0** | 8.0 GB | **67.8** | 51.2 | **0.49 s** / 0.71 s | 65 tok/s | **recommended**: best balance of accuracy and speed |
+| Hy-MT2-7B BF16 | 15.0 GB | 67.9 | 50.9 | 2.75 s / 4.01 s | 11 tok/s | same accuracy as the Q8_0, but too big for 16 GB of VRAM: 5–6× slower |
 | Hy-MT2-30B-A3B i1-IQ3_M | 13.3 GB | 67.7 | **52.0** | 0.94 s / 1.14 s | 53 tok/s | no more accurate than the 7B, twice as slow |
 | MiLMMT-46-12B Q6_K | 9.7 GB | 67.3 | 48.9 | 0.84 s / 1.08 s | 37 tok/s | uses its own prompt template automatically |
-| MiLMMT-46-4B Q8_0 | 4.1 GB | 65.3 | 47.0 | 0.36 s / 0.46 s | 93 tok/s | fastest, 2–3 points less accurate; own prompt template |
+| MiLMMT-46-4B Q8_0 | 4.1 GB | 65.3 | 47.0 | 0.36 s / 0.46 s | 93 tok/s | fast, 2–3 points less accurate; own prompt template |
+| Hy-MT2-1.8B Q8_0 | 1.9 GB | 65.1 | 50.3 | 0.20 s / 0.28 s | 174 tok/s | fastest and smallest: about 3 points less accurate into English than the 7B; for GPUs with little VRAM |
+| Hy-MT2-1.8B BF16 | 3.6 GB | 65.3 | 50.6 | 0.29 s / 0.39 s | 120 tok/s | no more accurate than its Q8_0, and slower |
 | Gemma-4-12B Q8_0 | 12.7 GB | 65.3 | 50.2 | 1.82 s / 2.33 s | 16 tok/s | doesn't fit fully in 16 GB of VRAM |
 | Qwen3.5-9B Q8_0 | 9.5 GB | 61.9 | 46.6 | 0.86 s / 1.13 s | 33 tok/s | thinking is switched off automatically |
 | Qwen2.5-7B-Instruct Q8_0 | 8.1 GB | – | – | ~0.40 s | 43 tok/s | older test: more literal mistakes |
 | Qwen3.8-27B UD-Q3_K_XL | 13.1 GB | – | – | 1.0–1.3 s | 18–25 tok/s | older test: good wording, very little VRAM left |
 
+- The Hy-MT2-1.8B and 7B BF16 rows (the `unsloth` GGUFs) were measured later, with Chinese output
+  converted to the chosen script as the app does since 1.5.0; the other rows without it. This only
+  matters for the 1.8B, which often writes Simplified Chinese when asked for Traditional: the app
+  converts it, so Traditional Chinese subtitles still come out right.
 - MiLMMT (Xiaomi, Gemma licence) and Hy-MT2-30B-A3B write real colloquial Cantonese when asked;
   Hy-MT2-7B writes formal written Chinese, which is why Cantonese is a video language only.
-- **Prompt templates** (Model tab): Hy-MT2 (`tencent/Hy-MT2-7B-GGUF` in LM Studio's Discover tab)
-  and MiLMMT get their own prompt format and sampling settings automatically (**Auto** matches the
-  model's name); every other model gets general subtitle-translator instructions. You can pick a
-  template by hand, add your own as JSON files in the `templates/` folder
+- **Prompt templates** (Model tab): Hy-MT2 (`tencent/Hy-MT2-7B-GGUF` in LM Studio's Discover tab,
+  or `unsloth`'s 1.8B and 7B GGUFs) and MiLMMT get their own prompt format and sampling settings
+  automatically (**Auto** matches the model's name); every other model gets general
+  subtitle-translator instructions. You can pick a template by hand, add your own as JSON files in the `templates/` folder
   ([format](templates/README.md)), and save the choice in a profile. Chinese subtitles are always
   converted to the chosen script (Traditional or Simplified), whatever the model writes.
 - Hybrid "thinking" models are asked not to reason (`reasoning_effort: none`), so they answer
