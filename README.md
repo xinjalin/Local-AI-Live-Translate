@@ -2,366 +2,76 @@
 
 [![Latest release](https://img.shields.io/github/v/release/xinjalin/Local-AI-Live-Translate)](https://github.com/xinjalin/Local-AI-Live-Translate/releases/latest)
 [![Checks](https://github.com/xinjalin/Local-AI-Live-Translate/actions/workflows/checks.yml/badge.svg)](https://github.com/xinjalin/Local-AI-Live-Translate/actions/workflows/checks.yml)
+[![Docs](https://img.shields.io/badge/docs-xinjalin.github.io-a8c5da)](https://xinjalin.github.io/Local-AI-Live-Translate-docs/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Real-time translated subtitles for any video or stream playing in Chrome: speech recognition and
-translation both run on your own PC, using a local LLM served by LM Studio (or Ollama). Online AI
-providers — Qwen, OpenAI, Anthropic, DeepSeek, Google Gemini and xAI Grok — can be turned on as an
-option.
+Real-time translated subtitles for any video or stream playing in Chrome. Speech recognition and
+translation run on your own PC, with a local model in LM Studio (or Ollama). Online AI providers —
+Qwen, OpenAI, Anthropic, DeepSeek, Google Gemini and xAI Grok — can be turned on as an option.
 
-**Author:** xinjalin <br>
-**Co-Author:** Claude Opus 5.5 <br>
-**License:** MIT (open source) · Windows 10/11 (x64) <br>
-
-```
-Chrome extension ──audio──> Local AI Live Translate server ──> LM Studio (local LLM)
-                  <─subtitles─     (speech recognition)            (translation)
-```
-
-## Screenshots
-
-The extension popup in the **Dark** and **Light** themes (there are also Hybrid, Sakura Light and Dark,
-three OLED themes, System and your own Custom theme), captured while translating Japanese into English with Hy-MT2-7B:
+**📖 Guides, troubleshooting and model benchmarks:
+[xinjalin.github.io/Local-AI-Live-Translate-docs](https://xinjalin.github.io/Local-AI-Live-Translate-docs/)**
 
 <table>
   <tr>
-    <th>Dark</th>
-    <th>Light</th>
-  </tr>
-  <tr>
-    <td><img src="docs/images/popup-live-dark.png" width="260" alt="Live tab in the dark theme: Japanese to English, hy-mt2-7b at 67 t/s, server connected with a 1.12 s round trip"></td>
-    <td><img src="docs/images/popup-live-light.png" width="260" alt="Live tab in the light theme"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/popup-display-dark.png" width="260" alt="Display tab in the dark theme: subtitle colours, font and a live preview with a speaker label"></td>
-    <td><img src="docs/images/popup-display-light.png" width="260" alt="Display tab in the light theme"></td>
+    <td><img src="docs/images/popup-live-dark.png" width="260" alt="Live tab in the dark theme: Japanese to English with Hy-MT2-7B, server connected with a 1.12 s round trip"></td>
+    <td><img src="docs/images/popup-display-light.png" width="260" alt="Display tab in the light theme: subtitle colours, font and a live preview"></td>
   </tr>
 </table>
 
-Hovering over the round-trip time shows where the time went, from the end of speech to the subtitle
-appearing on the page:
+## Features
 
-<img src="docs/images/popup-latency-dark.png" width="300" alt="Latency tooltip: pause detection 704 ms, speech recognition 93 ms, speaker labels 49 ms, LLM translation 319 ms, round trip 1.12 s">
-
-The server window logs each line as it's recognised (with the language and speaker) and translated
-(with the model's time and speed):
-
-<img src="docs/images/server-console.png" alt="Server console: SenseVoice recognising Japanese, Korean and Chinese speech from three speakers, and Hy-MT2-7B translating each line into English in 0.4 to 0.7 s at 63 to 65 t/s">
-
-The numbers in these screenshots come from a real run on an RX 9070 XT, using the SenseVoice test clips.
-
-## What you need
-
-- **Windows 10 or 11, 64-bit**, and **Google Chrome** (or another Chromium browser).
-- **LM Studio** 0.4 or newer — <https://lmstudio.ai> — with a translation model downloaded
-  (see *Choosing a model*). Ollama works too.
-- About **1 GB** of disk space. Python is **not** needed: the app uses its own private copy in
-  `runtime/`, which doesn't touch anything else on the PC.
-
-## Install
-
-**Option A — download a release (easiest):** get `Local-AI-Live-Translate-<version>-windows-x64.zip`
-from the [Releases page](https://github.com/xinjalin/Local-AI-Live-Translate/releases/latest) and
-unzip it to a folder with a short path, such as `C:\LocalAI\` (Windows limits file paths to 260
-characters, and a very deep folder can stop Python from loading). It contains everything, ready to
-run offline.
-
-**Option B — from the source code:**
-
-```bash
-git clone https://github.com/xinjalin/Local-AI-Live-Translate.git
-```
-
-The first run of `START_Local_AI_Live_Translate.bat` downloads what the app needs (~1.1 GB, one time):
-a portable Python 3.14 (python.org's NuGet package — no installer, no admin rights), its packages from
-PyPI, and the speech models. Every file is checked against a checksum pinned in
-[`tools/dependencies.json`](tools/dependencies.json) before it is used. After a `git pull`, anything
-new is downloaded the same way on the next start.
+- **24 languages**, including Cantonese as a video language, with the original line alongside the
+  translation if you like
+- **Fast:** a subtitle typically appears about a second after the speaker stops
+- **Private:** everything runs on your PC; nothing is sent online unless you turn on an online provider
+- **Speaker labels**, saved **profiles** and **display configs**, **themes** (including your own), and
+  a popup in **10 languages**
 
 ## Quick start
 
-1. **Start the server:** double-click `START_Local_AI_Live_Translate.bat`. Leave the window open;
-   it shows each recognised and translated line.
-2. **Start LM Studio's server:** open LM Studio → **Developer** tab → start the server
-   (default `http://127.0.0.1:1234`).
-3. **Install the extension (first time only):** open `chrome://extensions`, turn on
-   **Developer mode**, click **Load unpacked** and select the `extension` folder.
-4. Open a video, click the extension icon, pick your languages and a model on the **Model** tab,
-   then press **Start Live Translate**.
+You need **Windows 10 or 11 (64-bit)**, **Chrome** (or another Chromium browser) and
+**[LM Studio](https://lmstudio.ai)** 0.4 or newer.
 
-Picking a model in the list loads it into LM Studio (and ejects any other loaded model); the ▶ / ⏏
-button loads or ejects it manually. **Context Size** (4K / 8K / 16K) is applied when a model loads;
-4K is plenty for subtitles.
+1. **Download** `Local-AI-Live-Translate-<version>-windows-x64.zip` from
+   [Releases](https://github.com/xinjalin/Local-AI-Live-Translate/releases/latest) and unzip it to a
+   short path, such as `C:\LocalAI\`.
+2. **Download a model in LM Studio** — **Hy-MT2-7B** (`tencent/Hy-MT2-7B-GGUF`, Q8_0) — and start its
+   server (Developer tab).
+3. **Start the app:** double-click `START_Local_AI_Live_Translate.bat` and leave the window open.
+4. **Load the extension:** `chrome://extensions` → **Developer mode** → **Load unpacked** → the
+   `extension` folder.
+5. **Play a video**, click the extension icon, pick your languages and press **Start Live Translate**.
 
-## Folder layout
+Running from the source code, Ollama, and updating:
+[Install guide](https://xinjalin.github.io/Local-AI-Live-Translate-docs/getting-started/install/).
 
-| Folder / file | Contents |
-|---|---|
-| `START_Local_AI_Live_Translate.bat` | Starts the server |
-| `extension/` | The Chrome extension (load it unpacked) |
-| `server/` | Server source: `live_translate_server.py`, `translator.py`, `prompt_templates.py`, `qwen_live.py`, `requirements.txt` |
-| `templates/` | Your own prompt templates (JSON); see [templates/README.md](templates/README.md) |
-| `tools/` | `setup.ps1` (first-run downloads, pinned in `dependencies.json`), `build_package.py` (release bundle), `check_i18n.js` |
-| `models/` | Speech models: Silero VAD, SenseVoice (zh/en/ja/ko/yue), Whisper-Small, Dolphin small (Asian languages), Omnilingual 300M (Hindi, Arabic, …), and the CAM++ speaker model in `models/speaker/` |
-| `runtime/` | Private Python 3.14 with all packages installed (in releases; downloaded on first run from source) |
-| `transcripts/` | Markdown transcripts, when **Save transcripts** is switched on |
+## Which model?
 
-## How it works
+**Hy-MT2-7B Q8_0** (8 GB) is the best all-rounder. With less video memory, **Hy-MT2-1.8B Q8_0**
+(1.9 GB) is about 3 points less accurate and more than twice as fast.
+→ [Compare every model we've tested, by language](https://xinjalin.github.io/Local-AI-Live-Translate-docs/models/)
 
-- Tab audio is streamed to the server at `ws://127.0.0.1:8000/stream`.
-- Silero VAD cuts the audio into sentences (with 0.2 s of pre-roll so the first syllable isn't
-  clipped) and SenseVoice, Whisper-Small or Dolphin transcribes them on the CPU.
-- Lines already in the target language skip the LLM; Chinese ⇄ Chinese is converted instantly with
-  OpenCC (Taiwan phrasing for Traditional Chinese). Everything else is translated by the local LLM,
-  with the previous 4 lines as context so names, pronouns and misheard words come out right.
-- Recognition and translation run in parallel, and the LLM is called over one kept-alive
-  connection, so a finished subtitle typically appears 0.7–1.0 s after the speaker stops.
-- With **Label speakers** on, each line also gets a voice fingerprint (3D-Speaker CAM++), computed
-  on its own thread at the same time as the speech recognition, so lines don't arrive any later
-  (measured: same median latency with it on or off). The fingerprint is compared with the voices
-  heard so far in the session: a close match gets that person's number, a new voice becomes the next
-  Person n.
+## Privacy
 
-## Choosing a model (measured on an RX 9070 XT, 16 GB)
+Speech recognition and translation run on your PC, and there is no online fallback. Online providers
+are off by default and only used once you turn them on; API keys stay in the browser's private
+extension storage and only go to their own provider.
+→ [Privacy](https://xinjalin.github.io/Local-AI-Live-Translate-docs/privacy/) ·
+[Cloud providers & API keys](https://xinjalin.github.io/Local-AI-Live-Translate-docs/guide/cloud-providers/)
 
-Translation quality and speed through the app's own translator, on 24 FLORES sentences per language
-pair (about 18 words each). Quality is chrF (higher is better) averaged over 29 languages into English
-and English into 7 (Traditional and Simplified Chinese, Japanese, Korean, Spanish, Portuguese,
-Turkish); differences of a point or two are within noise.
+## Development
 
-| Model | File | Into English | From English | Per line (median / slowest 10 %) | Speed | Notes |
-|---|---|---|---|---|---|---|
-| **Hy-MT2-7B Q8_0** | 8.0 GB | **67.8** | 51.2 | **0.49 s** / 0.71 s | 65 tok/s | **recommended**: best balance of accuracy and speed |
-| Hy-MT2-7B BF16 | 15.0 GB | 67.9 | 50.9 | 2.75 s / 4.01 s | 11 tok/s | same accuracy as the Q8_0, but too big for 16 GB of VRAM: 5–6× slower |
-| Hy-MT2-30B-A3B i1-IQ3_M | 13.3 GB | 67.7 | **52.0** | 0.94 s / 1.14 s | 53 tok/s | no more accurate than the 7B, twice as slow |
-| MiLMMT-46-12B Q6_K | 9.7 GB | 67.3 | 48.9 | 0.84 s / 1.08 s | 37 tok/s | uses its own prompt template automatically |
-| MiLMMT-46-4B Q8_0 | 4.1 GB | 65.3 | 47.0 | 0.36 s / 0.46 s | 93 tok/s | fast, 2–3 points less accurate; own prompt template |
-| Hy-MT2-1.8B Q8_0 | 1.9 GB | 65.1 | 50.3 | 0.20 s / 0.28 s | 174 tok/s | fastest and smallest: about 3 points less accurate into English than the 7B; for GPUs with little VRAM |
-| Hy-MT2-1.8B BF16 | 3.6 GB | 65.3 | 50.6 | 0.29 s / 0.39 s | 120 tok/s | no more accurate than its Q8_0, and slower |
-| Gemma-4-12B Q8_0 | 12.7 GB | 65.3 | 50.2 | 1.82 s / 2.33 s | 16 tok/s | doesn't fit fully in 16 GB of VRAM |
-| Qwen3.5-9B Q8_0 | 9.5 GB | 61.9 | 46.6 | 0.86 s / 1.13 s | 33 tok/s | thinking is switched off automatically |
-| Qwen2.5-7B-Instruct Q8_0 | 8.1 GB | – | – | ~0.40 s | 43 tok/s | older test: more literal mistakes |
-| Qwen3.8-27B UD-Q3_K_XL | 13.1 GB | – | – | 1.0–1.3 s | 18–25 tok/s | older test: good wording, very little VRAM left |
-
-- The Hy-MT2-1.8B and 7B BF16 rows (the `unsloth` GGUFs) were measured later, with Chinese output
-  converted to the chosen script as the app does since 1.5.0; the other rows without it. This only
-  matters for the 1.8B, which often writes Simplified Chinese when asked for Traditional: the app
-  converts it, so Traditional Chinese subtitles still come out right.
-- MiLMMT (Xiaomi, Gemma licence) and Hy-MT2-30B-A3B write real colloquial Cantonese when asked;
-  Hy-MT2-7B writes formal written Chinese, which is why Cantonese is a video language only.
-- **Prompt templates** (Model tab): Hy-MT2 (`tencent/Hy-MT2-7B-GGUF` in LM Studio's Discover tab,
-  or `unsloth`'s 1.8B and 7B GGUFs) and MiLMMT get their own prompt format and sampling settings
-  automatically (**Auto** matches the model's name); every other model gets general
-  subtitle-translator instructions. You can pick a template by hand, add your own as JSON files in the `templates/` folder
-  ([format](templates/README.md)), and save the choice in a profile. Chinese subtitles are always
-  converted to the chosen script (Traditional or Simplified), whatever the model writes.
-- Hybrid "thinking" models are asked not to reason (`reasoning_effort: none`), so they answer
-  immediately.
-- On AMD GPUs keep LM Studio's **Vulkan** runtime; set GPU offload to max and flash attention on.
-
-## Tips
-
-- **Speed and latency** (status card, while captions run): next to the model, the local model's
-  generation speed on the last translated line (e.g. *64 t/s*, as LM Studio / Ollama measure it).
-  Next to the server, the round trip of the last line — from the moment the speaker stopped to the
-  subtitle reaching the page — in green (under 1.5 s), amber (under 3 s) or red. Hover over it for
-  the breakdown: pause detection (mostly the Silence Threshold), speech recognition, speaker labels
-  (they run at the same time as recognition), waiting behind the previous line, LLM translation
-  (tokens, speed and prompt processing) and delivery, plus the average of the last 10 lines. The
-  numbers are clock readings taken along the way and sent with each subtitle, so measuring them
-  doesn't slow anything down (tested: same latency as before, within a few ms).
-- **Cloud AI providers (online, optional, off by default):** turn on *Cloud AI providers* at the top
-  of the Model tab. It says first what that means: while an online provider is the LLM server, the
-  text of everything captured is sent to it, handled under its privacy terms and billed to your API
-  key. Once on, the *LLM Server* menu also lists **Qwen Cloud, OpenAI, Anthropic Claude, DeepSeek,
-  Google Gemini and xAI Grok**; turned off, they disappear from the menu and translation goes back
-  to LM Studio. Pick one, paste your API key (the *Get a key* link opens the provider's key page),
-  and choose a model: the list shows the models on your account, and you can type any model name.
-  Speech is still recognised on this PC; only the text of each line (with the previous lines as
-  context) goes to the provider. A wrong key, a used-up quota or another provider error shows as a ⚠
-  line in the subtitles. Profiles remember the provider and model (never the key); a profile with an
-  online provider uses LM Studio while cloud providers are off, and says so.
-- **API keys** are kept in the extension's own private storage in this browser on this PC — not
-  where web pages, or the extension's script inside them, can read — and only ever sent to their own
-  provider: through the app server on this PC, which sends a key only to that provider's official
-  HTTPS address. The popup never shows a saved key (only its last four characters), and keys are
-  never in profiles, exports, transcripts or the server's log. **Saved API Keys** (Model tab) lists
-  them: delete one, or **Clear all API keys** (press twice). Uninstalling the extension also deletes
-  them. Keys are stored the way browsers store extension data — not encrypted — so anyone who can use
-  your Windows account could read them; clear them on a shared PC.
-- **Qwen Cloud** specifics (key from [home.qwencloud.com/api-keys](https://home.qwencloud.com/api-keys)):
-  - *LiveTranslate models* (`qwen3.8-livetranslate-flash-realtime`, `qwen3.5-…`): the tab's audio is
-    streamed to Qwen Cloud, which detects, recognises and translates the speech itself (simultaneous
-    interpretation, 60 input languages; Qwen quotes ~2.3 s average lag). The subtitle grows as the
-    translation streams in. Local speech recognition and LM Studio aren't used; speaker labels still
-    work (computed on this PC). Needs a subtitle translation language. Billed per second of audio
-    (see Qwen's pricing), for as long as captions run.
-  - *Any other model* (e.g. `qwen-mt-flash`, `qwen-plus`): speech is recognised on this PC as usual and
-    Qwen Cloud translates the text through its OpenAI-compatible API (Qwen-MT models get their
-    translation options automatically).
-  - *Endpoint*: Qwen Cloud (`maas.qwencloudapi.com`, the default) or Alibaba Cloud Model Studio
-    (International, US or China).
-- **Search settings:** type in the search box under the start button (or press `/`) to find any
-  setting. It's forgiving about typos and abbreviations ("opacty", "fnt sz", "ctx") and knows a few
-  synonyms ("transparency", "hotkey", "noise"). Pick a suggestion with the mouse or arrow keys + Enter
-  to jump straight to that setting.
-- **Keyboard shortcut:** `Alt+Shift+L` starts or stops live translation on the current tab without
-  opening the popup (an **ON** badge shows on the icon while it runs). Change it on the Live tab or at
-  `chrome://extensions/shortcuts`.
-- **Label speakers** (Live tab) puts *Person 1:*, *Person 2:* … in front of each line, in a
-  different colour per person, for conversations and group videos. Numbering starts again each time
-  you start captions. *Speaker Separation* (Tuning tab, shown while it's on) sets how different two
-  voices must be to count as two people: raise it if two people get the same number, lower it if one
-  person gets split into two. Works best on clear speech; music, laughter or two people talking at
-  once can confuse it, and a very short line (under 1 s) keeps the previous speaker's number.
-- **Profiles** (top of the Live tab): save the translation setup — LLM server and address, model,
-  context size, video and translation languages, speech engine, bilingual mode, speaker labels and
-  the speech detection tuning (Tuning tab: detection threshold, silence threshold, max speech
-  duration, speaker separation) — under a name
-  (e.g. "Anime JP → EN"), and switch between them from the dropdown. Choosing a profile applies it at
-  once and loads its model into LM Studio. API keys are never stored in profiles.
-- **Display configs** (Display tab): save the subtitle look, layout and timing (the *Subtitle
-  Timing* settings on the Tuning tab) and the popup's theme (with your Custom theme's colours)
-  separately from profiles, so any profile can be combined with any display style. Display configs
-  saved before 1.6.0 don't include a theme and leave it as it is.
-- Both have the same controls: **+** saves the current settings as a new config, **✓** updates the
-  selected config after you've changed something (the panel says when it differs), and the bin deletes
-  it (click twice).
-- **Export / Import** (under each config panel): *Export* saves all your profiles (or display configs)
-  to a `.json` file to back up or share. *Import* opens a page in a new tab — a file picker would close
-  the popup — where you choose the file, see what's in it and tick what to add. Imported configs are
-  added next to yours (a name that's taken gets " (2)"), and nothing you have is changed. Every value is
-  checked before it's saved, and the page warns if a profile points to an LLM server on another computer.
-- **Profiles whose model you don't have:** the import page shows each profile's model as installed or
-  missing, and offers to download missing ones through LM Studio (with the size). You can click
-  *Later* — the profile is imported anyway. When you choose such a profile, the model you were using
-  keeps translating, the panel says the model isn't installed, and the Model tab offers the download
-  with a progress bar. Downloads keep running in LM Studio when the popup closes; once finished, the
-  profile's model is selected and loaded automatically. Exported profiles record where their model
-  comes from (LM Studio catalog or Hugging Face repo, read by the app server) and who published it.
-  When the source isn't known (exported while the app server was off, or by an older version),
-  **Find and download** looks the model up on Hugging Face by its name, publisher and quantization;
-  only those are sent, and only when you press the button.
-- **Languages:** the video and subtitle languages can each be Traditional or Simplified Chinese,
-  English, Japanese, Korean, Spanish, Portuguese, French, Italian, German, Dutch, Russian, Ukrainian,
-  Polish, Turkish, Indonesian, Vietnamese, Thai, Malay, Filipino, Hindi, Bengali or Arabic, and the
-  video can also be in **Cantonese**. The popup itself is available in Chinese (both), English,
-  Japanese, Korean, Spanish, French, German, Russian and Indonesian. Arabic subtitles are laid out
-  right to left.
-  - *Cantonese* is shown in Traditional characters and translated into standard written Chinese for
-    Chinese subtitles (呢幾個字都表達唔到 → 這幾個字都表達不了), not just converted character by
-    character. It isn't offered as a subtitle language: the translation model writes formal Chinese
-    rather than colloquial Cantonese.
-- **Speech engine** (Live tab):
-
-  | Engine | Recognises | Speed (per line) | Notes |
-  |---|---|---|---|
-  | SenseVoice | Chinese, Cantonese, English, Japanese, Korean | ~0.1 s | The default; best for these |
-  | Dolphin (small) | 40 Asian languages (Indonesian, Vietnamese, Thai, Malay, Filipino, Hindi, …) | ~0.2–0.7 s | Used automatically for Indonesian, Vietnamese, Thai, Malay and Filipino |
-  | Omnilingual (Meta, 300M) | 1,600+ languages | ~0.3–0.8 s | Used automatically for Hindi, Bengali, Arabic, Portuguese, Italian, Dutch, Ukrainian, Polish and Turkish |
-  | Whisper-Small | 99 languages | ~1.5–4 s | Covers everything else (Spanish, French, German, Russian, …) |
-
-  If the chosen engine can't recognise the video language, the server switches to the best one that
-  can, and the popup says so: SenseVoice where possible, Dolphin for the five South-East Asian
-  languages, Omnilingual for Hindi, Bengali and Arabic (Dolphin as their fallback) and for the newer
-  European languages and Turkish (Whisper-Small as theirs), otherwise Whisper-Small.
-  Measured on Google FLEURS recordings (errors, Dolphin small vs Whisper-Small):
-
-  | Language | Dolphin small | Whisper-Small |
-  |---|---|---|
-  | Indonesian | 18.4 % WER | 18.0 % WER |
-  | Vietnamese | 10.3 % WER | 10.8 % WER |
-  | Malay | 9.9 % WER | 12.6 % WER |
-  | Filipino | 28.8 % WER | 35.3 % WER |
-  | Thai (per character) | 9.9 % CER | 49.3 % CER |
-
-  Hindi and Arabic (word errors): Omnilingual 6.1 % / 15.8 %, Dolphin small 14.3 % / 19.4 %,
-  Whisper-Small 79 % (unusable for Hindi) / 25.5 %. Hy-MT2-7B translates both well (chrF into
-  English 65 / 66, ahead of Gemma-4-12B and Qwen3.5-9B). The Arabic test is Modern Standard Arabic;
-  dialects (Egyptian, Gulf, …) are untested.
-
-  The newer languages, measured the same way (10 FLEURS recordings each; word / character errors),
-  and how much of the translation survives recognition errors (chrF into English with Hy-MT2-7B,
-  from the recognised speech against a perfect transcript):
-
-  | Language | Engine | Errors | Into English (from speech / perfect transcript) |
-  |---|---|---|---|
-  | Cantonese | SenseVoice | 4.7 % CER (Dolphin 12.0 %) | 56 / 55 |
-  | Portuguese | Omnilingual | 14.3 % / 4.0 % | 65 / 71 |
-  | Italian | Omnilingual | 13.4 % / 1.7 % | 56 / 62 |
-  | Dutch | Omnilingual | 22.7 % / 7.1 % | 55 / 66 |
-  | Ukrainian | Omnilingual | 25.7 % / 4.6 % | 55 / 60 |
-  | Polish | Omnilingual | 24.9 % / 4.1 % | 52 / 54 |
-  | Turkish | Omnilingual | 22.2 % / 4.0 % | 62 / 67 |
-  | Bengali | Omnilingual | 15.5 % / 7.2 % (Dolphin 32 %, Whisper 100 %) | 54 / 57 |
-
-  Omnilingual writes no punctuation or capitals in the original-language line (the translation is
-  unaffected). Whisper-Small is a little more accurate for Italian and Dutch (61 / 62 into English)
-  but adds 1–2 s per line; pick it on the Live tab if accuracy matters more than delay there. Urdu
-  isn't offered yet: no engine recognises it well in Urdu script.
-
-  Dolphin is also ~9× faster: a full subtitle into English took 1.1–1.8 s, against 2.8–5.3 s with
-  Whisper-Small. Set the video language rather than *Auto Detect* for languages SenseVoice doesn't
-  know; its auto-detect only knows its five.
-- **Tuning tab:**
-  - *Speech Detection Threshold* — lower picks up quiet voices; raise it (0.5–0.7) for videos with
-    music or background noise under the voice.
-  - *Silence Threshold* — how long the server waits after speech stops before sending a line;
-    0.3–0.4 s feels snappier than 0.5 s. *Max Speech Duration* force-splits long monologues.
-  - *Extra Time On Screen* / *Minimum Display Time* — how long each line stays up.
-- **Display tab:** colours, background opacity (0 % = no box at all), 7 font sizes, 8 system fonts,
-  text weight and shadow/outline, with a live preview. *Subtitle Layout* sets the position (bottom,
-  top, or wherever you last dragged the subtitles — double-click them to reset), whether the original
-  text goes above or below the translation and how big it is, history lines, and *Keep subtitle box
-  on screen*.
-- **Save transcripts** (Live tab) is off by default. When on, each session is saved as a Markdown
-  file in `transcripts/`, with the original and translated text of every line.
-- **Themes** (Display tab): Dark, Light, Hybrid (dark shell with light panels), **Sakura Light**
-  and **Sakura Dark** (cherry-blossom pinks on a blush page or a plum night, in the Glass style),
-  System, and the OLED family with a blue accent — **OLED Light** (white), **OLED Dim** (dark navy)
-  and **OLED Black** (true black `#000`, no background glow: on OLED / AMOLED screens black pixels
-  are switched off).
-  **Custom** makes your own: pick a **Glass** style (glowing background, see-through panels, like
-  Dark and Light) or **Flat** (solid surfaces, like the OLED themes), start from any built-in theme,
-  and set the colours of the background, panels, accent and buttons, and of the headings, labels,
-  text, hints and dropdowns. Text that would be hard to read on your background is lightened or
-  darkened just enough to stay readable. Save it with a display config to keep several.
-  Themes only change colours; the layout is the same in all of them.
-
-## Server options
-
-```
-runtime\python.exe server\live_translate_server.py --threads 8 --preroll 0.2
-```
-
-`--threads` sets the CPU threads for speech recognition (default: half your cores, at most 8),
-`--speaker-threads` those for speaker labels (default 2; they run alongside recognition), and
-`--preroll` the audio kept before each detected speech start.
-
-## Privacy note
-
-Speech recognition and translation run locally, and nothing is sent online unless you turn on
-**Cloud AI providers** and pick an online provider as the LLM server. There is no online fallback:
-if the local LLM can't be reached, a line is shown untranslated. With an online provider picked,
-the recognised text — or, with a Qwen LiveTranslate model, the tab's audio — is sent to that
-provider under its terms; the popup's footer says *Cloud AI providers on* while the setting is on.
-API keys are kept as described above and can be cleared at any time (Model tab → Saved API Keys).
-The app server only accepts connections from the extension, so web pages open in the browser can't
-use it.
-
-## Releases and development
-
-Pushing a version tag (`vX.Y.Z`, matching `VERSION` in `server/live_translate_server.py` and the
-extension's `manifest.json`) makes GitHub Actions build the Windows bundle on a clean machine — with
-the same `tools/setup.ps1` a first run uses — and publish it with SHA-256 checksums on the
-[Releases page](https://github.com/xinjalin/Local-AI-Live-Translate/releases). Every push also runs
-syntax, translation and secret-scan checks. See [DEVELOPMENT.md](DEVELOPMENT.md).
+See [DEVELOPMENT.md](DEVELOPMENT.md). Releases are built by GitHub Actions from a version tag and
+published on the [Releases page](https://github.com/xinjalin/Local-AI-Live-Translate/releases) with
+SHA-256 checksums. The docs site's source, and the benchmark behind the model comparison, are in
+[Local-AI-Live-Translate-docs](https://github.com/xinjalin/Local-AI-Live-Translate-docs).
 
 ## License and credits
 
-Local AI Live Translate is by **xinjalin** and open source under the [MIT License](LICENSE). It builds
-on open-source components: the speech models, Python and the Python packages it downloads keep their
-own licenses — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Local AI Live Translate is by **xinjalin** (co-author: Claude Opus 5.5) and open source under the
+[MIT License](LICENSE). The speech models, Python and the Python packages it downloads keep their own
+licences — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 It started from [LiveCaption](https://github.com/begin0808/LiveCaption) by begin0808 (Studio0808),
 whose design inspired this one and parts of whose extension code it still contains (MIT License,
