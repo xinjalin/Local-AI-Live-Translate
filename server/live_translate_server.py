@@ -45,7 +45,7 @@ from qwen_live import QwenLiveTranslate, is_livetranslate
 from prompt_templates import ID_RE as TEMPLATE_ID_RE, TemplateStore
 from translator import CLOUD_PROVIDERS, LOCAL_PROVIDERS, LlmConfig, Translator, cloud_host, qwen_base
 
-VERSION = "1.9.0"
+VERSION = "1.9.1"
 SAMPLE_RATE = 16000
 VAD_WINDOW = 512  # samples per Silero VAD step at 16 kHz
 HISTORY_SECONDS = 20  # recent audio kept for pre-roll (must exceed max speech + silence)
