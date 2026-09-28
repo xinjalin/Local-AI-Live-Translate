@@ -1387,6 +1387,12 @@ select.lang-native {
   min-width: 0;
 }
 
+/* (the online Model menu: a searchable menu button in place of its select) */
+.model-row .lang-trigger {
+  flex: 1;
+  min-width: 0;
+}
+
 .icon-btn {
   flex: none;
   width: 38px;
