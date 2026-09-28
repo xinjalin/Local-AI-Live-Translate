@@ -1678,6 +1678,14 @@ cloudKeyInput.addEventListener('change', () => {
 cloudKeyInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') cloudKeyInput.blur();
 });
+// A pasted key (Ctrl+V or right-click) is saved straight away; it never goes into the field.
+cloudKeyInput.addEventListener('paste', (e) => {
+  const text = e.clipboardData && e.clipboardData.getData('text');
+  if (!text || !text.trim()) return;
+  e.preventDefault();
+  cloudKeyInput.value = '';
+  saveKey(llmProviderInput.value, text);
+});
 document.getElementById('cloud-key-remove').addEventListener('click', () => removeKey(llmProviderInput.value));
 document.getElementById('clear-keys').addEventListener('click', clearKeysPressed);
 qwenUrlInput.addEventListener('change', () => {
@@ -2826,3 +2834,45 @@ function resumeModelDownload() {
 }
 
 document.getElementById('download-model').addEventListener('click', startModelDownload);
+
+// ---------------------------------------------------------------------------
+// Right-click in a text field pastes, as in a terminal: with text selected it copies that instead
+// (never from a password field), and Shift + right-click opens the browser's usual menu. The paste
+// goes through the field's own paste handling first, so a pasted API key is saved straight away.
+// Reading the clipboard needs the "clipboardRead" permission; it only happens on this right-click.
+// ---------------------------------------------------------------------------
+
+const PASTE_INPUT_TYPES = ['text', 'password', 'search', 'url'];
+
+document.addEventListener('contextmenu', async (e) => {
+  const el = e.target;
+  if (e.shiftKey || !(el instanceof HTMLInputElement) || !PASTE_INPUT_TYPES.includes(el.type) ||
+      el.disabled || el.readOnly) return;
+  e.preventDefault();
+  el.focus();
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
+  if (start !== end && el.type !== 'password') {
+    try {
+      await navigator.clipboard.writeText(el.value.slice(start, end));
+    } catch (err) {
+      console.warn('Copy failed:', err);
+    }
+    el.setSelectionRange(end, end);
+    return;
+  }
+  let text;
+  try {
+    text = await navigator.clipboard.readText();
+  } catch (err) {
+    console.warn('Paste failed:', err);
+    return;
+  }
+  if (!text) return;
+  const clipboardData = new DataTransfer();
+  clipboardData.setData('text/plain', text);
+  const paste = new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true });
+  if (!el.dispatchEvent(paste)) return; // handled by the field (e.g. an API key, saved)
+  el.setRangeText(text.replace(/[\r\n]+/g, ' '), start, end, 'end');
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+});
