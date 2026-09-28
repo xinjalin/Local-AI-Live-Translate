@@ -1,13 +1,177 @@
 /* ==========================================================================
-   Themes. Every colour in this file comes from these tokens, so switching
-   theme only changes colours, never layout. theme.js sets data-theme on <html>,
-   and for the Custom theme works out every token from the user's colours.
-   (--heading and --label-text are only set by the Custom theme: the built-in
-   themes show panel titles and field labels in --panel-muted.)
+   Themes. Every colour in this file comes from these tokens. theme.js sets
+   data-theme on <html>, and for the Custom theme works out every token from the
+   user's colours. (--heading and --label-text are only set by the Custom theme:
+   the built-in themes show panel titles and field labels in --panel-muted.)
+
+   Dark and Light (the default) also set data-layout="studio" on <html>: flat
+   charcoal / white surfaces, a pale-blue status card, tighter corners and
+   sentence-case titles (see "Studio layout" at the end). Every other theme only
+   changes colours.
    ========================================================================== */
+
+/* Dark / Light: charcoal or white, pale-blue highlights, no glow (the default) */
 
 :root,
 :root[data-theme="dark"] {
+  --scheme-page: dark;
+  --scheme-panel: dark;
+
+  --page-bg: #111111;
+  --page-glow: none;
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.62);
+
+  --accent: #a8c5da;
+  --accent-strong: #a8c5da;
+  --accent-soft: rgba(168, 197, 218, 0.14);
+  --accent-soft-border: rgba(168, 197, 218, 0.4);
+  --logo-left-a: #e3f5ff;
+  --logo-left-b: #a8c5da;
+  --logo-right: #262626;
+  --logo-a: #111111;
+  --logo-wen: #e3f5ff;
+  --logo-edge: rgba(255, 255, 255, 0.1);
+
+  --hero-bg: #e3f5ff;
+  --hero-sheen: none;
+  --hero-border: transparent;
+  --hero-text: #111111;
+  --hero-muted: rgba(17, 17, 17, 0.58);
+  --hero-accent: #2f5f86;
+  --hero-shadow: none;
+
+  --panel-bg: #1a1a1a;
+  --panel-border: transparent;
+  --panel-text: #ffffff;
+  --panel-muted: rgba(255, 255, 255, 0.64);
+  --field-bg: #242424;
+  --field-border: rgba(255, 255, 255, 0.06);
+  --field-text: #ffffff;
+  --field-placeholder: rgba(255, 255, 255, 0.4);
+  --focus-ring: rgba(168, 197, 218, 0.4);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --seg-bg: #1a1a1a;
+  --seg-border: transparent;
+  --seg-text: rgba(255, 255, 255, 0.64);
+  --seg-active-bg: #2c2c2c;
+  --seg-active-border: transparent;
+  --seg-active-text: #ffffff;
+
+  --btn-bg: #e3f5ff;
+  --btn-text: #111111;
+  --btn-shadow: none;
+  --btn-stop-bg: rgba(248, 113, 113, 0.12);
+  --btn-stop-border: rgba(248, 113, 113, 0.4);
+  --btn-stop-text: #fca5a5;
+  --icon-bg: #242424;
+  --icon-text: #e3f5ff;
+  --switch-off: #3a3a3a;
+  --switch-on: #a8c5da;
+  --switch-knob: #ffffff;
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --chip-bg: rgba(255, 255, 255, 0.07);
+  --chip-text: rgba(255, 255, 255, 0.72);
+  --chip-live-bg: rgba(168, 197, 218, 0.16);
+  --rec-dot: #c0265f;
+  --rec-dot-bright: #e0306f;
+  --rec-glow: rgba(224, 48, 111, 0.45);
+  --chip-live-text: #e3f5ff;
+
+  --menu-bg: #1c1c1c;
+  --menu-border: rgba(255, 255, 255, 0.08);
+  --menu-text: #ffffff;
+  --menu-muted: rgba(255, 255, 255, 0.6);
+  --menu-active: #2a2a2a;
+  --menu-mark: #a8c5da;
+  --menu-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="light"] {
+  --scheme-page: light;
+  --scheme-panel: light;
+
+  --page-bg: #ffffff;
+  --page-glow: none;
+  --text: #1c1c1c;
+  --text-muted: rgba(28, 28, 28, 0.58);
+
+  --accent: #3f64a0;
+  --accent-strong: #4f7fa3;
+  --accent-soft: #e3f5ff;
+  --accent-soft-border: #a8c5da;
+  --logo-left-a: #e3f5ff;
+  --logo-left-b: #a8c5da;
+  --logo-right: #1c1c1c;
+  --logo-a: #111111;
+  --logo-wen: #e3f5ff;
+  --logo-edge: rgba(28, 28, 28, 0.1);
+
+  --hero-bg: #e3f5ff;
+  --hero-sheen: none;
+  --hero-border: transparent;
+  --hero-text: #1c1c1c;
+  --hero-muted: rgba(28, 28, 28, 0.58);
+  --hero-accent: #2f5f86;
+  --hero-shadow: none;
+
+  --panel-bg: #f7f9fb;
+  --panel-border: transparent;
+  --panel-text: #1c1c1c;
+  --panel-muted: rgba(28, 28, 28, 0.62);
+  --field-bg: #ffffff;
+  --field-border: rgba(28, 28, 28, 0.1);
+  --field-text: #1c1c1c;
+  --field-placeholder: rgba(28, 28, 28, 0.4);
+  --focus-ring: rgba(79, 127, 163, 0.3);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --seg-bg: #f7f9fb;
+  --seg-border: transparent;
+  --seg-text: rgba(28, 28, 28, 0.62);
+  --seg-active-bg: #ffffff;
+  --seg-active-border: transparent;
+  --seg-active-text: #1c1c1c;
+
+  --btn-bg: #1c1c1c;
+  --btn-text: #ffffff;
+  --btn-shadow: none;
+  --btn-stop-bg: #fef2f2;
+  --btn-stop-border: #fecaca;
+  --btn-stop-text: #b91c1c;
+  --icon-bg: #eef2f6;
+  --icon-text: #1c1c1c;
+  --switch-off: #d4d4d4;
+  --switch-on: #1c1c1c;
+  --switch-knob: #ffffff;
+
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --chip-bg: #f7f9fb;
+  --chip-text: rgba(28, 28, 28, 0.62);
+  --chip-live-bg: #e3f5ff;
+  --rec-dot: #9d1747;
+  --rec-dot-bright: #c21f5a;
+  --rec-glow: rgba(194, 31, 90, 0.35);
+  --chip-live-text: #1c1c1c;
+
+  --menu-bg: #ffffff;
+  --menu-border: rgba(28, 28, 28, 0.08);
+  --menu-text: #1c1c1c;
+  --menu-muted: rgba(28, 28, 28, 0.56);
+  --menu-active: #f3f5f8;
+  --menu-mark: #1c1c1c;
+  --menu-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* Glass Dark / Glass Light: lavender glow, see-through panels */
+
+:root[data-theme="glass-dark"] {
   --scheme-page: dark;
   --scheme-panel: dark;
 
@@ -95,7 +259,7 @@
   --menu-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
 }
 
-:root[data-theme="light"] {
+:root[data-theme="glass-light"] {
   --scheme-page: light;
   --scheme-panel: light;
 
@@ -173,88 +337,6 @@
   --menu-active: #f1edfb;
   --menu-mark: #6d28d9;
   --menu-shadow: 0 16px 36px rgba(76, 29, 149, 0.16);
-}
-
-/* Hybrid: the dark shell from the dark theme, with light panels and a light active tab
-   so the controls stand out against it. */
-:root[data-theme="hybrid"] {
-  --scheme-page: dark;
-  --scheme-panel: light;
-
-  --page-bg: #0b0a10;
-  --page-glow:
-    radial-gradient(120% 55% at 105% 105%, rgba(124, 58, 237, 0.48), transparent 62%),
-    radial-gradient(90% 40% at -10% -5%, rgba(139, 92, 246, 0.16), transparent 60%);
-  --text: #f4f3f7;
-  --text-muted: #9a96a8;
-
-  --accent: #7c3aed;
-  --accent-strong: #7c3aed;
-  --accent-soft: rgba(167, 139, 250, 0.16);
-  --accent-soft-border: rgba(167, 139, 250, 0.45);
-  --logo-left-a: #c4b5fd;
-  --logo-left-b: #7c3aed;
-  --logo-right: #f7f5fc;
-  --logo-a: #ffffff;
-  --logo-wen: #6d28d9;
-  --logo-edge: rgba(255, 255, 255, 0.35);
-
-  --hero-bg: linear-gradient(150deg, #2d2939 0%, #1c1b23 55%, #16151c 100%);
-  --hero-sheen: radial-gradient(85% 70% at 25% -10%, rgba(196, 181, 253, 0.28), transparent 60%);
-  --hero-border: rgba(255, 255, 255, 0.1);
-  --hero-text: #f4f3f7;
-  --hero-muted: #9a96a8;
-  --hero-accent: #c4b5fd;
-  --hero-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
-
-  --panel-bg: #f7f5fc;
-  --panel-border: rgba(255, 255, 255, 0.6);
-  --panel-text: #16141d;
-  --panel-muted: #6d6a7a;
-  --field-bg: #ffffff;
-  --field-border: rgba(22, 20, 29, 0.1);
-  --field-text: #16141d;
-  --field-placeholder: #a19eae;
-  --focus-ring: rgba(124, 58, 237, 0.25);
-  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236d6a7a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-
-  --seg-bg: #15141b;
-  --seg-border: rgba(255, 255, 255, 0.08);
-  --seg-text: #b3afbf;
-  --seg-active-bg: #f7f5fc;
-  --seg-active-border: #ffffff;
-  --seg-active-text: #16141d;
-
-  --btn-bg: #ffffff;
-  --btn-text: #0b0a10;
-  --btn-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
-  --btn-stop-bg: rgba(248, 113, 113, 0.14);
-  --btn-stop-border: rgba(248, 113, 113, 0.5);
-  --btn-stop-text: #fca5a5;
-  --icon-bg: #efeaf9;
-  --icon-text: #6d28d9;
-  --switch-off: #d8d3e4;
-  --switch-on: #7c3aed;
-  --switch-knob: #ffffff;
-
-  --success: #059669;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --chip-bg: rgba(255, 255, 255, 0.08);
-  --chip-text: #c9c6d3;
-  --chip-live-bg: #f7f5fc;
-  --rec-dot: #9d1747;
-  --rec-dot-bright: #c21f5a;
-  --rec-glow: rgba(194, 31, 90, 0.35);
-  --chip-live-text: #6d28d9;
-
-  --menu-bg: #ffffff;
-  --menu-border: rgba(22, 20, 29, 0.1);
-  --menu-text: #16141d;
-  --menu-muted: #6d6a7a;
-  --menu-active: #efeaf9;
-  --menu-mark: #6d28d9;
-  --menu-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
 /* OLED family: flat surfaces and a blue accent (#1d9bf0), in three brightness levels -
@@ -1988,3 +2070,64 @@ select.lang-native {
 .footer.cloud-on {
   color: var(--warning);
 }
+
+/* ==========================================================================
+   Studio layout (the Dark and Light themes, and Custom themes in the Studio style; theme.js sets
+   data-layout)
+   Flat surfaces, tighter corners, sentence-case titles, a pale-blue status card.
+   ========================================================================== */
+
+:root[data-layout="studio"] .brand-mark { filter: none; }
+
+:root[data-layout="studio"] .hero { border-radius: 12px; }
+:root[data-layout="studio"] .panel { border-radius: 10px; }
+:root[data-layout="studio"] .panel-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--heading, var(--panel-text));
+}
+
+/* Tighter corners on everything that was a pill or a soft rounded box */
+:root[data-layout="studio"] .chip,
+:root[data-layout="studio"] .btn,
+:root[data-layout="studio"] .search input,
+:root[data-layout="studio"] .segmented { border-radius: 9px; }
+:root[data-layout="studio"] .segmented button { border-radius: 6px; }
+:root[data-layout="studio"] .segmented button.active { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18); }
+:root[data-layout="studio"] .field select,
+:root[data-layout="studio"] .field input[type="text"],
+:root[data-layout="studio"] .field input[type="password"],
+:root[data-layout="studio"] .config-panel select,
+:root[data-layout="studio"] .config-panel input[type="text"],
+:root[data-layout="studio"] .lang-trigger,
+:root[data-layout="studio"] .icon-btn,
+:root[data-layout="studio"] .small-btn,
+:root[data-layout="studio"] .swatch-field,
+:root[data-layout="studio"] .model-missing,
+:root[data-layout="studio"] .cloud-warning,
+:root[data-layout="studio"] .key-row { border-radius: 8px; }
+:root[data-layout="studio"] .config-actions .icon-btn { border-radius: 7px; }
+:root[data-layout="studio"] .lang-menu,
+:root[data-layout="studio"] .search-results,
+:root[data-layout="studio"] .latency-tip,
+:root[data-layout="studio"] select:not(.lang-native)::picker(select) { border-radius: 10px; }
+:root[data-layout="studio"] .lang-search,
+:root[data-layout="studio"] .lang-option,
+:root[data-layout="studio"] .search-option { border-radius: 6px; }
+:root[data-layout="studio"] .subtitle-preview { border-radius: 8px; }
+
+/* Primary small buttons use the main button's colours (pale blue on dark, black on light) */
+:root[data-layout="studio"] .small-btn.primary {
+  background: var(--btn-bg);
+  border-color: var(--btn-bg);
+  color: var(--btn-text);
+}
+
+/* Dark / Light's status card is pale blue in both modes: status colours dark enough to read on it
+   (a Custom theme in the Studio style has its own card colours) */
+:root:is([data-theme="dark"], [data-theme="light"]) .hero .meta-value.online,
+:root:is([data-theme="dark"], [data-theme="light"]) .hero .meta-stat.good { color: #15803d; }
+:root:is([data-theme="dark"], [data-theme="light"]) .hero .meta-stat.ok { color: #b45309; }
+:root:is([data-theme="dark"], [data-theme="light"]) .hero .meta-stat.slow { color: #b91c1c; }
