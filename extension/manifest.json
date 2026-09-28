@@ -14,7 +14,8 @@
     "tabCapture",
     "offscreen",
     "activeTab",
-    "storage"
+    "storage",
+    "clipboardRead"
   ],
   "host_permissions": [
     "<all_urls>"
