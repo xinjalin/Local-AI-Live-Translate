@@ -283,11 +283,20 @@ class LanguagePicker {
     return [...all.filter(e => e.special), ...languages];
   }
 
+  // Texts of the search box and of an empty result (ModelPicker has its own).
+  searchText() {
+    return t('langSearchPlaceholder');
+  }
+
+  emptyText() {
+    return t('langNoResults');
+  }
+
   sync() {
     const opt = this.select.selectedOptions[0];
     this.triggerLabel.textContent = opt ? opt.text : '';
-    this.search.placeholder = t('langSearchPlaceholder');
-    this.search.setAttribute('aria-label', t('langSearchPlaceholder'));
+    this.search.placeholder = this.searchText();
+    this.search.setAttribute('aria-label', this.searchText());
     if (!this.menu.hidden) this.render();
   }
 
@@ -302,13 +311,15 @@ class LanguagePicker {
         const score = Math.max(onLabel ? onLabel.score : -Infinity, onExtra ? onExtra.score * 0.6 : -Infinity);
         return { entry, score, positions: onLabel ? onLabel.positions : [] };
       }).filter(r => r.score > -Infinity).sort((a, b) => b.score - a.score);
+      // (entries marked `last`, e.g. "Use what I typed", after the matches)
+      shown = [...shown.filter(r => !r.entry.last), ...shown.filter(r => r.entry.last)];
     }
     this.items = shown;
     this.list.innerHTML = '';
     if (!shown.length) {
       const empty = document.createElement('li');
       empty.className = 'lang-empty';
-      empty.textContent = t('langNoResults');
+      empty.textContent = this.emptyText();
       this.list.appendChild(empty);
     }
     const current = this.select.value;
@@ -422,6 +433,39 @@ class LanguagePicker {
 }
 
 document.querySelectorAll('select.lang-select').forEach(sel => new LanguagePicker(sel));
+
+// The online providers' Model menu: the models the provider lists for the account, searchable, and
+// any model name typed into the search ("Use …"), for models the list doesn't show.
+class ModelPicker extends LanguagePicker {
+  entries() {
+    const all = [...this.select.options].filter(o => o.value)
+      .map(o => ({ value: o.value, label: o.text, special: false, extra: o.value }));
+    const typed = this.search.value.trim();
+    if (typed && /^[\w.\-:/@]{1,120}$/.test(typed) && !all.some(e => e.value === typed)) {
+      all.push({ value: typed, label: t('modelUseTyped', { name: typed }), special: true, last: true, extra: typed });
+    }
+    return all;
+  }
+
+  searchText() {
+    return t('modelSearchPlaceholder');
+  }
+
+  emptyText() {
+    return t('modelNoResults');
+  }
+
+  sync() {
+    super.sync();
+    if (!this.select.value) this.triggerLabel.textContent = t('modelChoose');
+  }
+
+  choose(value) {
+    if (value && ![...this.select.options].some(o => o.value === value)) this.select.add(new Option(value, value));
+    super.choose(value);
+  }
+}
+new ModelPicker(cloudModelInput);
 
 function applyLanguage(lang) {
   document.documentElement.lang = lang;
@@ -1120,11 +1164,12 @@ async function refreshCloudModels() {
   if (!lcIsCloudProvider(provider)) return;
   const seq = ++cloudListSeq;
   const name = LC_CLOUD_PROVIDERS[provider].name;
-  const list = document.getElementById('cloud-models');
   const fill = (ids) => {
-    list.innerHTML = '';
+    const current = cloudModelInput.value;
+    cloudModelInput.innerHTML = '';
     const all = provider === 'qwencloud' ? [...QWEN_LIVE_MODELS, ...ids.filter(id => !QWEN_LIVE_MODELS.includes(id))] : ids;
-    for (const id of all) list.appendChild(new Option(isLiveTranslate(id) ? `${id} (LiveTranslate)` : id, id));
+    for (const id of all) cloudModelInput.add(new Option(isLiveTranslate(id) ? `${id} (LiveTranslate)` : id, id));
+    setCloudModel(current);
   };
   fill([]);
   const key = await LcApiKeys.get(provider).catch(() => '');
@@ -1144,7 +1189,7 @@ async function refreshCloudModels() {
     fill(ids);
     if (!cloudModelInput.value.trim() && ids.length) {
       // Nothing chosen yet: start with the provider's small, fast model.
-      cloudModelInput.value = lcPreferredModel(provider, ids);
+      setCloudModel(lcPreferredModel(provider, ids));
       saveSettings();
       updateHero();
     }
@@ -1228,6 +1273,13 @@ async function refreshTemplates() {
     // App server not running: the built-in templates are listed
   }
   buildTemplateSelect();
+}
+
+// Shows `model` in the online Model menu (added to it if the provider's list doesn't have it).
+function setCloudModel(model) {
+  const value = model || '';
+  if (value && ![...cloudModelInput.options].some(o => o.value === value)) cloudModelInput.add(new Option(value, value));
+  cloudModelInput.value = value;
 }
 
 // The model in use for the chosen provider.
@@ -1413,8 +1465,7 @@ function showProviderFields() {
   document.getElementById('group-qwen-endpoint').hidden = provider !== 'qwencloud';
   document.getElementById('group-model').hidden = cloud;
   if (cloud) {
-    cloudModelInput.value = providerModels[provider] || '';
-    cloudModelInput.placeholder = provider === 'qwencloud' ? DEFAULTS.qwencloudModel : '';
+    setCloudModel(providerModels[provider] || '');
     cloudStatus = null;
     renderCloudStatus();
     renderKeyState();
@@ -1474,7 +1525,7 @@ function showProviderFields() {
   };
   providerModels.qwencloud = providerModels.qwencloud || DEFAULTS.qwencloudModel;
   qwenUrlInput.value = lcQwenEndpoint(result.qwencloudUrl);
-  cloudModelInput.value = providerModels[llmProviderInput.value] || '';
+  setCloudModel(providerModels[llmProviderInput.value] || '');
   loadKeyHints();
 
   if (result.minSilence !== undefined) minSilenceInput.value = result.minSilence;
@@ -1633,7 +1684,7 @@ qwenUrlInput.addEventListener('change', () => {
   saveSettings();
   refreshCloudModels();
 });
-cloudModelInput.addEventListener('input', () => {
+cloudModelInput.addEventListener('change', () => {
   saveSettings();
   updateHero();
   updateQwenMode();
@@ -2288,7 +2339,7 @@ async function applyProfile(p, config) {
   providerModels = { ...providerModels, lmstudio: p.lmstudioModel || '', ollama: p.ollamaModel || '' };
   for (const id of CLOUD_IDS) if (p[modelKey(id)] !== undefined) providerModels[id] = p[modelKey(id)];
   if (p.qwencloudUrl !== undefined) qwenUrlInput.value = lcQwenEndpoint(p.qwencloudUrl);
-  cloudModelInput.value = lcIsCloudProvider(llmProviderInput.value) ? providerModels[llmProviderInput.value] || '' : '';
+  setCloudModel(lcIsCloudProvider(llmProviderInput.value) ? providerModels[llmProviderInput.value] || '' : '');
   contextSizeInput.value = String(p.contextSize || DEFAULTS.contextSize);
   // (not in profiles saved before prompt templates existed: those use Auto)
   setTemplateValue(p.promptTemplate || 'auto');

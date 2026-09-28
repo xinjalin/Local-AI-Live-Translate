@@ -248,10 +248,10 @@
           <div class="field" data-search="cloud model online">
             <label for="cloud-model" data-i18n="labelCloudModel">Model</label>
             <div class="model-row">
-              <input type="text" id="cloud-model" list="cloud-models" spellcheck="false" autocomplete="off">
+              <!-- A searchable menu (popup.js: ModelPicker) of the account's models; any typed name can be used too -->
+              <select id="cloud-model"></select>
               <button id="refresh-cloud" class="icon-btn" type="button" data-i18n-title="btnRefreshTitle" title="Refresh model list">&#x21bb;</button>
             </div>
-            <datalist id="cloud-models"></datalist>
             <div class="hint" id="qwen-mode" hidden></div>
             <div class="hint" id="cloud-status"></div>
           </div>
