@@ -1,31 +1,38 @@
 // Popup theme (shared by popup.js and import.js).
 //
 // Most built-in themes are sets of colour tokens in popup.css, picked with data-theme on <html>.
-// The Custom theme is made here from a few colours the user picks: every token is worked out from
-// them and set on <html>, so the rest of the CSS doesn't know the difference. The Sakura themes are
-// made the same way, from fixed colours (LC_PRESET_THEMES). "Glass" keeps the
-// glowing background and see-through panels of Dark / Light / Hybrid; "Flat" has the solid
-// surfaces of the OLED themes.
+// Dark and Light (the default) also change the layout: they set data-layout="studio" (popup.css,
+// "Studio layout"). The Custom theme is made here from a few colours the user picks: every token is
+// worked out from them and set on <html>, so the rest of the CSS doesn't know the difference. The
+// Sakura themes are made the same way, from fixed colours (LC_PRESET_THEMES). A Custom theme's
+// style: "Studio" has the layout of Dark / Light, "Glass" the glowing background and see-through
+// panels of Glass Dark / Glass Light, "Flat" the solid surfaces of the OLED themes.
 
-const LC_THEMES = ['dark', 'light', 'hybrid', 'sakura-light', 'sakura-dark', 'oled-light', 'oled-dim', 'oled-black', 'system', 'custom'];
+const LC_THEMES = ['dark', 'light', 'glass-dark', 'glass-light', 'sakura-light', 'sakura-dark', 'oled-light', 'oled-dim', 'oled-black', 'system', 'custom'];
+// Themes with the studio layout
+const LC_STUDIO_THEMES = ['dark', 'light'];
 // Built-in themes made from their LC_THEME_SEEDS colours (not in popup.css).
 const LC_PRESET_THEMES = ['sakura-light', 'sakura-dark'];
-const LC_THEME_STYLES = ['glass', 'flat'];
+const LC_THEME_STYLES = ['studio', 'glass', 'flat'];
 // In the order the popup shows them: surfaces, then text.
 const LC_THEME_COLOR_KEYS = ['background', 'panel', 'accent', 'button', 'heading', 'label', 'text', 'muted', 'field'];
 
 // A built-in theme's colours, for starting a custom one from it.
 const LC_THEME_SEEDS = {
   dark: {
+    style: 'studio', background: '#111111', panel: '#1a1a1a', accent: '#a8c5da', button: '#e3f5ff',
+    heading: '#ffffff', label: '#a3a3a3', text: '#ffffff', muted: '#9e9e9e', field: '#ffffff'
+  },
+  light: {
+    style: 'studio', background: '#ffffff', panel: '#f7f9fb', accent: '#4f7fa3', button: '#1c1c1c',
+    heading: '#1c1c1c', label: '#626262', text: '#1c1c1c', muted: '#6b6b6b', field: '#1c1c1c'
+  },
+  'glass-dark': {
     style: 'glass', background: '#0b0a10', panel: '#16151c', accent: '#8b5cf6', button: '#ffffff',
     heading: '#8f8b9c', label: '#8f8b9c', text: '#ecebf1', muted: '#8f8b9c', field: '#ecebf1'
   },
-  light: {
+  'glass-light': {
     style: 'glass', background: '#f5f3fb', panel: '#ffffff', accent: '#7c3aed', button: '#16141d',
-    heading: '#6d6a7a', label: '#6d6a7a', text: '#16141d', muted: '#6d6a7a', field: '#16141d'
-  },
-  hybrid: {
-    style: 'glass', background: '#0b0a10', panel: '#f7f5fc', accent: '#7c3aed', button: '#ffffff',
     heading: '#6d6a7a', label: '#6d6a7a', text: '#16141d', muted: '#6d6a7a', field: '#16141d'
   },
   // Cherry blossom: petal pinks on a blush page (light) or a plum night (dark).
@@ -251,6 +258,9 @@ function lcApplyTheme(theme, custom) {
     theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   root.dataset.theme = theme;
+  const studio = LC_STUDIO_THEMES.includes(theme) || (theme === 'custom' && lcSanitizeCustomTheme(custom).style === 'studio');
+  if (studio) root.dataset.layout = 'studio';
+  else delete root.dataset.layout;
   if (theme !== 'custom' && !LC_PRESET_THEMES.includes(theme)) return;
   const tokens = lcCustomThemeTokens(theme === 'custom' ? custom : lcCustomThemeFrom(theme));
   for (const [name, value] of Object.entries(tokens)) root.style.setProperty(name, value);
